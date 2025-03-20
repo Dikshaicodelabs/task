@@ -22,8 +22,8 @@ import css from './StripePaymentAddress.module.css';
  * @returns {JSX.Element}
  */
 const StripePaymentAddress = props => {
-  const { className, intl, disabled, form, fieldId, card, locale } = props;
-
+  const { className, intl, disabled, form, fieldId, card, locale, token } = props;
+   console.log(props , '--props address')
   const optionalText = intl.formatMessage({
     id: 'StripePaymentAddress.optionalText',
   });
@@ -83,8 +83,9 @@ const StripePaymentAddress = props => {
 
   const handleOnChange = event => {
     const value = event.target.value;
-    form.change('postal', value);
-    card.update({ value: { postalCode: value } });
+    form.change('postal', value); 
+    
+    token == 'card' && card.update({ value: { postalCode: value } });
   };
 
   // Use the language set in config.localization.locale to get the correct translations of the country names

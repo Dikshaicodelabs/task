@@ -29,6 +29,8 @@ export const INITIATE_INQUIRY_REQUEST = 'app/CheckoutPage/INITIATE_INQUIRY_REQUE
 export const INITIATE_INQUIRY_SUCCESS = 'app/CheckoutPage/INITIATE_INQUIRY_SUCCESS';
 export const INITIATE_INQUIRY_ERROR = 'app/CheckoutPage/INITIATE_INQUIRY_ERROR';
 
+export const PAYMENT_WITH_TOKEN_SUCCESS = 'app/CheckoutPage/PAYMENT_WITH_TOKEN_SUCCESS';
+export const UPADTE_ORDER_DATA = 'app/CheckoutPage/UPADTE_ORDER_DATA';
 // ================ Reducer ================ //
 
 const initialState = {
@@ -44,6 +46,8 @@ const initialState = {
   stripeCustomerFetched: false,
   initiateInquiryInProgress: false,
   initiateInquiryError: null,
+  paymentWithTokenSuccess: false,
+  orderData:null
 };
 
 export default function checkoutPageReducer(state = initialState, action = {}) {
@@ -109,7 +113,13 @@ export default function checkoutPageReducer(state = initialState, action = {}) {
       return { ...state, initiateInquiryInProgress: false };
     case INITIATE_INQUIRY_ERROR:
       return { ...state, initiateInquiryInProgress: false, initiateInquiryError: payload };
+    case PAYMENT_WITH_TOKEN_SUCCESS:
+      return { ...state, paymentWithTokenSuccess: true };
+      break;
 
+    case UPADTE_ORDER_DATA:
+          return { ...state, orderData:payload };
+          break;
     default:
       return state;
   }
@@ -143,7 +153,10 @@ const confirmPaymentSuccess = orderId => ({
   type: CONFIRM_PAYMENT_SUCCESS,
   payload: orderId,
 });
-
+const paymentWithTokens = orderId => ({
+  type: PAYMENT_WITH_TOKEN_SUCCESS,
+  payload: orderId,
+});
 const confirmPaymentError = e => ({
   type: CONFIRM_PAYMENT_ERROR,
   error: true,
@@ -178,7 +191,7 @@ export const initiateInquiryError = e => ({
   error: true,
   payload: e,
 });
-
+export const orderData =(orderData)=>({type:UPADTE_ORDER_DATA,payload:orderData})
 /* ================ Thunks ================ */
 
 export const initiateOrder = (
@@ -302,6 +315,9 @@ export const confirmPayment = (transactionId, transitionName, transitionParams =
       });
       throw e;
     });
+};
+const updateOrderData = () => (dispatch, getState, sdk) => {
+  dispatch(orderData())
 };
 
 export const sendMessage = params => (dispatch, getState, sdk) => {

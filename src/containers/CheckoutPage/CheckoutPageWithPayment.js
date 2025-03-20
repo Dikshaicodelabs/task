@@ -22,8 +22,10 @@ import {
   hasDefaultPaymentMethod,
   hasPaymentExpired,
   hasTransactionPassedPendingPayment,
+  processCheckoutWithoutPayment,
   processCheckoutWithPayment,
   setOrderPageInitialValues,
+  getShippingDetailsWithToken
 } from './CheckoutPageTransactionHelpers.js';
 import { getErrorMessages } from './ErrorMessages';
 
@@ -176,7 +178,202 @@ export const loadInitialDataForStripePayments = ({
 
   fetchSpeculatedTransactionIfNeeded(orderParams, pageData, fetchSpeculatedTransaction);
 };
+/**
+ * Load initial data for the page
+ *
+ * Since the data for the checkout is not passed in the URL (there
+ * might be lots of options in the future), we must pass in the data
+ * some other way. Currently the ListingPage sets the initial data
+ * for the CheckoutPage's Redux store.
+ *
+ * For some cases (e.g. a refresh in the CheckoutPage), the Redux
+ * store is empty. To handle that case, we store the received data
+ * to window.sessionStorage and read it from there if no props from
+ * the store exist.
+ *
+ * This function also sets of fetching the speculative transaction
+ * based on this initial data.
+ */
+export const loadInitialData = ({ pageData, fetchSpeculatedTransaction, config }) => {
+  // Fetch speculated transaction for showing price in order breakdown
+  // NOTE: if unit type is line-item/item, quantity needs to be added.
+  // The way to pass it to checkout page is through pageData.orderData
+  const shippingDetails = {};
+  const orderParams = getOrderParams(pageData, shippingDetails, config);
 
+  fetchSpeculatedTransactionIfNeeded(orderParams, pageData, fetchSpeculatedTransaction);
+};
+
+// const handleSubmit = (values, process, props, stripe, submitting, setSubmitting) => {
+//   if (submitting) {
+//     return;
+//   }
+//   setSubmitting(true);
+
+//   const {
+//     history,
+//     config,
+//     routeConfiguration,
+//     speculatedTransaction,
+//     currentUser,
+//     stripeCustomerFetched,
+//     paymentIntent,
+//     dispatch,
+//     onInitiateOrder,
+//     onConfirmCardPayment,
+//     onConfirmPayment,
+//     onSendMessage,
+//     onSavePaymentMethod,
+//     onSubmitCallback,
+//     pageData,
+//     setPageData,
+//     sessionStorageKey,
+//   } = props;
+//   const { card, message, paymentMethod: selectedPaymentMethod, formValues } = values;
+//   const { saveAfterOnetimePayment: saveAfterOnetimePaymentRaw } = formValues;
+//   console.log(formValues);
+//   const saveAfterOnetimePayment =
+//     Array.isArray(saveAfterOnetimePaymentRaw) && saveAfterOnetimePaymentRaw.length > 0;
+
+//   if (selectedPaymentMethod === 'token') {
+//      console.log('Processing payment using user token balance...');
+//       // const requestPaymentParams = {
+//       //   pageData,
+//       //   speculatedTransaction,
+//       //   billingDetails: getBillingDetails(formValues),
+//       //   message,
+//       //   process,
+//       //   onInitiateOrder,
+//       //   onSendMessage,
+//       //   sessionStorageKey,
+//       //   setPageData,
+//       // };
+
+//   //     const shippingDetails = getShippingDetailsMaybe(formValues);
+//   // console.log('shipping details', shippingDetails)
+//       // These are the order parameters for the first payment-related transition
+//       // which is either initiate-transition or initiate-transition-after-enquiry
+// //       const orderParams = getOrderParams(pageData, shippingDetails, config);
+// //  console.log(orderParams, 'order params>>>')
+//       // There are multiple XHR calls that needs to be made against the Sharetribe Marketplace API on checkout with payments
+//       processCheckoutWithoutPayment(orderParams, requestPaymentParams)
+//         .then(response => {
+//           const { orderId, messageSuccess } = response;
+//           setSubmitting(false);
+//           console.log(' inside then while submiiting')
+//           const initialMessageFailedToTransaction = messageSuccess ? null : orderId;
+//           const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
+//             id: orderId.uuid,
+//           });
+//           const initialValues = {
+//             initialMessageFailedToTransaction,
+//           };
+
+//           setOrderPageInitialValues(initialValues, routeConfiguration, dispatch);
+//           onSubmitCallback();
+//           history.push(orderDetailsPath);
+//         })
+//         .catch(err => {
+//           console.error(err);
+//           setSubmitting(false);
+//         });
+
+//   //   const userTokenBalance = currentUser?.attributes?.profile?.publicData?.token || 0;
+//   //   const requiredAmount = speculatedTransaction?.attributes?.payinTotal?.amount / 100 || 0;
+//   //   console.log(requiredAmount, 'required balance');
+//   //   console.log(userTokenBalance, 'token balance');
+//   //   if (userTokenBalance < requiredAmount) {
+//   //     console.error('Insufficient token balance. Payment cannot proceed.');
+//   //     setSubmitting(false);
+//   //     return;
+//   //   }
+
+//   //   const params = {
+//   //     message: message ? message.trim() : null,
+//   //     formId: formValues.formId,
+//   //     formValues: values,
+//   //     paymentMethod: 'token', // Explicitly mark token as the method
+//   //     amountDeducted: requiredAmount, // Record the deducted token amount
+//   //   };
+
+//   //   console.log('Submitting order with token:', params);
+//   //   onSubmitCallback(params);
+//     return;
+//  }
+//   const selectedPaymentFlow = paymentFlow(selectedPaymentMethod, saveAfterOnetimePayment);
+//   const hasDefaultPaymentMethodSaved = hasDefaultPaymentMethod(stripeCustomerFetched, currentUser);
+//   const stripePaymentMethodId = hasDefaultPaymentMethodSaved
+//     ? currentUser?.stripeCustomer?.defaultPaymentMethod?.attributes?.stripePaymentMethodId
+//     : null;
+
+//   // If paymentIntent status is not waiting user action,
+//   // confirmCardPayment has been called previously.
+//   const hasPaymentIntentUserActionsDone =
+//     paymentIntent && STRIPE_PI_USER_ACTIONS_DONE_STATUSES.includes(paymentIntent.status);
+
+//   const requestPaymentParams = {
+//     pageData,
+//     speculatedTransaction,
+//     stripe,
+//     card,
+//     billingDetails: getBillingDetails(formValues, currentUser),
+//     message,
+//     paymentIntent,
+//     hasPaymentIntentUserActionsDone,
+//     stripePaymentMethodId,
+//     process,
+//     onInitiateOrder,
+//     onConfirmCardPayment,
+//     onConfirmPayment,
+//     onSendMessage,
+//     onSavePaymentMethod,
+//     sessionStorageKey,
+//     stripeCustomer: currentUser?.stripeCustomer,
+//     isPaymentFlowUseSavedCard: selectedPaymentFlow === USE_SAVED_CARD,
+//     isPaymentFlowPayAndSaveCard: selectedPaymentFlow === PAY_AND_SAVE_FOR_LATER_USE,
+//     setPageData,
+//   };
+
+//   const shippingDetails = getShippingDetailsMaybe(formValues);
+//   // Note: optionalPaymentParams contains Stripe paymentMethod,
+//   // but that can also be passed on Step 2
+//   // stripe.confirmCardPayment(stripe, { payment_method: stripePaymentMethodId })
+//   const optionalPaymentParams =
+//     selectedPaymentFlow === USE_SAVED_CARD && hasDefaultPaymentMethodSaved
+//       ? { paymentMethod: stripePaymentMethodId }
+//       : selectedPaymentFlow === PAY_AND_SAVE_FOR_LATER_USE
+//       ? { setupPaymentMethodForSaving: true }
+//       : {};
+
+//   // These are the order parameters for the first payment-related transition
+//   // which is either initiate-transition or initiate-transition-after-enquiry
+//   const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
+
+//   // There are multiple XHR calls that needs to be made against Stripe API and Sharetribe Marketplace API on checkout with payments
+
+//   processCheckoutWithPayment(orderParams, requestPaymentParams)
+//     .then(response => {
+//       const { orderId, messageSuccess, paymentMethodSaved } = response;
+//       setSubmitting(false);
+
+//       const initialMessageFailedToTransaction = messageSuccess ? null : orderId;
+//       const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
+//         id: orderId.uuid,
+//       });
+//       const initialValues = {
+//         initialMessageFailedToTransaction,
+//         savePaymentMethodFailed: !paymentMethodSaved,
+//       };
+
+//       setOrderPageInitialValues(initialValues, routeConfiguration, dispatch);
+//       onSubmitCallback();
+//       history.push(orderDetailsPath);
+//     })
+//     .catch(err => {
+//       console.error(err);
+//       setSubmitting(false);
+//     });
+// };
 const handleSubmit = (values, process, props, stripe, submitting, setSubmitting) => {
   if (submitting) {
     return;
@@ -202,46 +399,71 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
     setPageData,
     sessionStorageKey,
   } = props;
+
   const { card, message, paymentMethod: selectedPaymentMethod, formValues } = values;
   const { saveAfterOnetimePayment: saveAfterOnetimePaymentRaw } = formValues;
-  console.log(formValues);
   const saveAfterOnetimePayment =
     Array.isArray(saveAfterOnetimePaymentRaw) && saveAfterOnetimePaymentRaw.length > 0;
 
-  // if (selectedPaymentMethod === 'token') {
-  //   console.log('Processing payment using user token balance...');
+  // If user is paying with token, process the payment without Stripe
+  if (selectedPaymentMethod === 'token') {
+    console.log('Processing payment using user token balance...');
 
-  //   const userTokenBalance = currentUser?.attributes?.profile?.publicData?.token || 0;
-  //   const requiredAmount = speculatedTransaction?.attributes?.payinTotal?.amount / 100 || 0;
-  //   console.log(requiredAmount, 'required balance');
-  //   console.log(userTokenBalance, 'token balance');
-  //   if (userTokenBalance < requiredAmount) {
-  //     console.error('Insufficient token balance. Payment cannot proceed.');
-  //     setSubmitting(false);
-  //     return;
-  //   }
+    const requestPaymentParams = {
+      pageData,
+      speculatedTransaction,
+      billingDetails: getBillingDetails(formValues),
+      message,
+      process,
+      onInitiateOrder,
+      onSendMessage,
+      sessionStorageKey,
+      setPageData,
+      onConfirmPayment,
+    };
+  console.log(formValues , 'form values --->>')
+    const shippingDetails = getShippingDetailsWithToken(formValues);
+    console.log('Shipping details:', shippingDetails);
 
-  //   const params = {
-  //     message: message ? message.trim() : null,
-  //     formId: formValues.formId,
-  //     formValues: values,
-  //     paymentMethod: 'token', // Explicitly mark token as the method
-  //     amountDeducted: requiredAmount, // Record the deducted token amount
-  //   };
+    // Generate order parameters
+    const orderParams = getOrderParams(pageData, shippingDetails, config);
+    console.log('Order params:', orderParams);
 
-  //   console.log('Submitting order with token:', params);
-  //   onSubmitCallback(params);
-  //   return;
-  // }
+    // Process checkout without Stripe
+    processCheckoutWithoutPayment(orderParams, requestPaymentParams)
+      .then(response => {
+        const { orderId, messageSuccess } = response;
+        setSubmitting(false);
+        console.log('Order submitted successfully.');
+
+        const initialMessageFailedToTransaction = messageSuccess ? null : orderId;
+        const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
+          id: orderId.uuid,
+        });
+
+        const initialValues = {
+          initialMessageFailedToTransaction,
+        };
+
+        setOrderPageInitialValues(initialValues, routeConfiguration, dispatch);
+        onSubmitCallback();
+        history.push(orderDetailsPath);
+      })
+      .catch(err => {
+        console.error('Error processing token payment:', err);
+        setSubmitting(false);
+      });
+
+    return; // Exit function to prevent further execution
+  }
+
+  // Handle normal Stripe payment
   const selectedPaymentFlow = paymentFlow(selectedPaymentMethod, saveAfterOnetimePayment);
   const hasDefaultPaymentMethodSaved = hasDefaultPaymentMethod(stripeCustomerFetched, currentUser);
   const stripePaymentMethodId = hasDefaultPaymentMethodSaved
     ? currentUser?.stripeCustomer?.defaultPaymentMethod?.attributes?.stripePaymentMethodId
     : null;
- 
 
-  // If paymentIntent status is not waiting user action,
-  // confirmCardPayment has been called previously.
   const hasPaymentIntentUserActionsDone =
     paymentIntent && STRIPE_PI_USER_ACTIONS_DONE_STATUSES.includes(paymentIntent.status);
 
@@ -269,9 +491,6 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
   };
 
   const shippingDetails = getShippingDetailsMaybe(formValues);
-  // Note: optionalPaymentParams contains Stripe paymentMethod,
-  // but that can also be passed on Step 2
-  // stripe.confirmCardPayment(stripe, { payment_method: stripePaymentMethodId })
   const optionalPaymentParams =
     selectedPaymentFlow === USE_SAVED_CARD && hasDefaultPaymentMethodSaved
       ? { paymentMethod: stripePaymentMethodId }
@@ -279,12 +498,9 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
       ? { setupPaymentMethodForSaving: true }
       : {};
 
-  // These are the order parameters for the first payment-related transition
-  // which is either initiate-transition or initiate-transition-after-enquiry
   const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
 
-  // There are multiple XHR calls that needs to be made against Stripe API and Sharetribe Marketplace API on checkout with payments
-
+  // Process checkout with Stripe
   processCheckoutWithPayment(orderParams, requestPaymentParams)
     .then(response => {
       const { orderId, messageSuccess, paymentMethodSaved } = response;
@@ -294,6 +510,7 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
       const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
         id: orderId.uuid,
       });
+
       const initialValues = {
         initialMessageFailedToTransaction,
         savePaymentMethodFailed: !paymentMethodSaved,
@@ -304,7 +521,7 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
       history.push(orderDetailsPath);
     })
     .catch(err => {
-      console.error(err);
+      console.error('Error processing Stripe payment:', err);
       setSubmitting(false);
     });
 };
@@ -312,7 +529,10 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
 const onStripeInitialized = (stripe, process, props) => {
   const { paymentIntent, onRetrievePaymentIntent, pageData } = props;
   const tx = pageData?.transaction || null;
-
+    // const tx =
+    //   existingTransaction?.attributes?.lineItems?.length > 0
+    //     ? existingTransaction
+    //     : speculatedTransaction;
   // We need to get up to date PI, if payment is pending but it's not expired.
   const shouldFetchPaymentIntent =
     stripe &&
@@ -455,7 +675,8 @@ export const CheckoutPageWithPayment = props => {
   );
 
   const firstImage = listing?.images?.length > 0 ? listing.images[0] : null;
-
+  const { userType, token } = currentUser?.attributes?.profile?.publicData;
+  console.log(userType, ' ', token);
   const listingLink = (
     <NamedLink
       name="ListingPage"
@@ -486,7 +707,7 @@ export const CheckoutPageWithPayment = props => {
   // If paymentIntent status is not waiting user action,
   // confirmCardPayment has been called previously.
   const hasPaymentIntentUserActionsDone =
-    paymentIntent && STRIPE_PI_USER_ACTIONS_DONE_STATUSES.includes(paymentIntent.status);
+    paymentIntent && STRIPE_PI_USER_ACTIONS_DONE_STATUSES.includes(paymentIntent.status);// /// ////
 
   // If your marketplace works mostly in one country you can use initial values to select country automatically
   // e.g. {country: 'FI'}
@@ -495,6 +716,7 @@ export const CheckoutPageWithPayment = props => {
   const askShippingDetails =
     orderData?.deliveryMethod === 'shipping' &&
     !hasTransactionPassedPendingPayment(existingTransaction, process);
+  //  const askShippingDetails = orderData?.deliveryMethod === 'shipping'; 
 
   // Check if the listing currency is compatible with Stripe for the specified transaction process.
   // This function validates the currency against the transaction process requirements and
@@ -565,20 +787,20 @@ export const CheckoutPageWithPayment = props => {
                 showInitialMessageInput={showInitialMessageInput}
                 initialValues={initialValuesForStripePayment}
                 initiateOrderError={initiateOrderError}
-                confirmCardPaymentError={confirmCardPaymentError}
-                confirmPaymentError={confirmPaymentError}
-                hasHandledCardPayment={hasPaymentIntentUserActionsDone}
-                loadingData={!stripeCustomerFetched}
+                confirmCardPaymentError={confirmCardPaymentError}//
+                confirmPaymentError={confirmPaymentError}//
+                hasHandledCardPayment={hasPaymentIntentUserActionsDone} //
+                loadingData={!stripeCustomerFetched}//
                 defaultPaymentMethod={
                   hasDefaultPaymentMethod(stripeCustomerFetched, currentUser)
                     ? currentUser.stripeCustomer.defaultPaymentMethod
                     : null
-                }
-                paymentIntent={paymentIntent}
+                }//
+                paymentIntent={paymentIntent}//
                 onStripeInitialized={stripe => {
                   setStripe(stripe);
                   return onStripeInitialized(stripe, process, props);
-                }}
+                }}//
                 askShippingDetails={askShippingDetails}
                 showPickUplocation={orderData?.deliveryMethod === 'pickup'}
                 listingLocation={listing?.attributes?.publicData?.location}

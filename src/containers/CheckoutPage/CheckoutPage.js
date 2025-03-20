@@ -41,6 +41,7 @@ import {
 import CustomTopbar from './CustomTopbar';
 import CheckoutPageWithPayment, {
   loadInitialDataForStripePayments,
+  loadInitialData
 } from './CheckoutPageWithPayment';
 import CheckoutPageWithInquiryProcess from './CheckoutPageWithInquiryProcess';
 
@@ -245,6 +246,7 @@ const mapDispatchToProps = dispatch => ({
   onSendMessage: params => dispatch(sendMessage(params)),
   onSavePaymentMethod: (stripeCustomer, stripePaymentMethodId) =>
     dispatch(savePaymentMethod(stripeCustomer, stripePaymentMethodId)),
+  
 });
 
 const CheckoutPage = compose(

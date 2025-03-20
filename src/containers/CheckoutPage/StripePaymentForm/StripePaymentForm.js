@@ -295,6 +295,7 @@ const initialState = {
  */
 class StripePaymentForm extends Component {
   constructor(props) {
+    console.log(props);
     super(props);
     // this.state = initialState;
     this.state = {
@@ -320,6 +321,7 @@ class StripePaymentForm extends Component {
       throw new Error('Stripe must be loaded for StripePaymentForm');
     }
 
+    const userType = this.props?.currentUser?.attributes?.profile?.publicData?.userType;
     const publishableKey = this.props.stripePublishableKey;
     if (publishableKey) {
       const {
@@ -329,18 +331,28 @@ class StripePaymentForm extends Component {
         loadingData,
       } = this.props;
       this.stripe = window.Stripe(publishableKey);
-      onStripeInitialized(this.stripe);
+      const res =onStripeInitialized(this.stripe);
+      console.log(res, '----')
 
-      if (
-        !(
-          hasHandledCardPayment ||
-          defaultPaymentMethod ||
-          loadingData ||
-          this.state.selectedOption === 'token'
-        )
-      ) {
-        this.initializeStripeElement();
-      }
+     
+      // const shouldInitializeStripe =
+      //   !(hasHandledCardPayment || defaultPaymentMethod || loadingData ) &&
+      //   (userType === 'customer' && this.state.selectedOption === 'card');
+
+      // if (shouldInitializeStripe) {
+      //   this.initializeStripeElement();
+      // }  
+    //   if (
+    //     !(
+    //       hasHandledCardPayment ||
+    //       defaultPaymentMethod ||
+    //       loadingData 
+    //     )
+    //   ) {
+    //     this.initializeStripeElement();
+    //   }
+    //    console.log(hasHandledCardPayment);
+    //    console.log(defaultPaymentMethod)
     }
   }
 
@@ -467,7 +479,6 @@ class StripePaymentForm extends Component {
   //       paymentMethod,
   //       ensurePaymentMethodCard(defaultPaymentMethod).id
   //     ),
-
   //   };
   //   onSubmit(params);
   // }
@@ -485,7 +496,7 @@ class StripePaymentForm extends Component {
 
     console.log(defaultPaymentMethod, '-->>');
     console.log('Selected Option:', selectedOption);
-    
+
     // Prevent duplicate submission
     if (inProgress) {
       console.warn('Form is already submitting.');
@@ -500,7 +511,7 @@ class StripePaymentForm extends Component {
         formValues: values,
         paymentMethod: "token", // Use token directly when selected
       };
-      
+
       console.log('Submitting with Token:', params);
       onSubmit(params);
       return;
@@ -523,7 +534,7 @@ class StripePaymentForm extends Component {
     );
 
     if (onetimePaymentNeedsAttention) {
-    
+
       console.log('Card details need attention. Cannot proceed.');
       return;
     }
@@ -574,7 +585,7 @@ class StripePaymentForm extends Component {
     } = formRenderProps;
 
     this.finalFormAPI = formApi;
-
+    const { userType, token } = currentUser?.attributes?.profile?.publicData;
     const ensuredDefaultPaymentMethod = ensurePaymentMethodCard(defaultPaymentMethod);
     const billingDetailsNeeded = !(hasHandledCardPayment || confirmPaymentError);
 
@@ -646,6 +657,7 @@ class StripePaymentForm extends Component {
         fieldId={formId}
         card={this.card}
         locale={locale}
+        token={this.state.selectedOption}
       />
     );
 
@@ -656,8 +668,8 @@ class StripePaymentForm extends Component {
       this.updateBillingDetailsToMatchShippingAddress(checked);
     };
     // const token = currentUser?.attributes?.profile?.publicData?.token;
-    const { userType, token } = currentUser?.attributes?.profile?.publicData;
-
+    // const { userType, token } = currentUser?.attributes?.profile?.publicData;
+    console.log(userType);
     const ComponentWithToken = () => {
       return (
         <div>
@@ -722,13 +734,13 @@ class StripePaymentForm extends Component {
                 intl={intl}
                 marketplaceName={marketplaceName}
               />
-            ) : token ? (
+            ) : token && userType === 'customer' ? (
               <React.Fragment>
                 <Heading as="h3" rootClassName={css.heading}>
                   <FormattedMessage id="StripePaymentForm.paymentMethod" />
                 </Heading>
                 <ComponentWithToken />
-                {this.state.selectedOption === 'token' ? (
+                {userType === 'customer' && this.state.selectedOption === 'token' ? (
                   <>
                     <label for="token">Choose a token:</label>
 
@@ -765,6 +777,8 @@ class StripePaymentForm extends Component {
                 />
               </React.Fragment>
             )}
+
+      
 
             {showOnetimePaymentFields ? (
               <div className={css.billingDetails}>

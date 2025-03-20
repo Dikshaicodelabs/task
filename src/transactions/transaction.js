@@ -2,6 +2,7 @@ import * as log from '../util/log';
 import * as purchaseProcess from './transactionProcessPurchase';
 import * as bookingProcess from './transactionProcessBooking';
 import * as inquiryProcess from './transactionProcessInquiry';
+import * as tokenProcess from './transactionProcessToken';
 
 // Supported unit types
 // Note: These are passed to translations/microcopy in certain cases.
@@ -16,6 +17,7 @@ export const INQUIRY = 'inquiry';
 export const PURCHASE_PROCESS_NAME = 'default-purchase';
 export const BOOKING_PROCESS_NAME = 'default-booking';
 export const INQUIRY_PROCESS_NAME = 'default-inquiry';
+export const TOKEN_PROCESS_NAME = 'default-token';
 
 /**
  * A process should export:
@@ -48,6 +50,12 @@ const PROCESSES = [
     alias: `${INQUIRY_PROCESS_NAME}/release-1`,
     process: inquiryProcess,
     unitTypes: [INQUIRY],
+  },
+  {
+    name: TOKEN_PROCESS_NAME,
+    alias: `${TOKEN_PROCESS_NAME}/release-1`,
+    process: tokenProcess,
+    unitTypes: [DAY, NIGHT, HOUR],
   },
 ];
 
@@ -88,7 +96,7 @@ const getStateAfterTransition = process => transition => {
     ? statesObj[fromState]?.on[transition]
     : null;
 };
-
+                 
 /**
  * This is a helper function that's attached to exported 'getProcess' as 'getState'
  * Get state based on lastTransition of given transaction entity.
@@ -216,6 +224,8 @@ export const resolveLatestProcessName = processName => {
       return BOOKING_PROCESS_NAME;
     case INQUIRY_PROCESS_NAME:
       return INQUIRY_PROCESS_NAME;
+    case TOKEN_PROCESS_NAME:
+      return TOKEN_PROCESS_NAME;
     default:
       return processName;
   }

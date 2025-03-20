@@ -16,7 +16,9 @@ import { storeData } from './CheckoutPageSessionHelpers';
  * @returns object containing unitType etc. - or an empty object.
  */
 export const getTransactionTypeData = (listingType, unitTypeInPublicData, config) => {
-  const listingTypeConfig = config.listing.listingTypes.find(lt => lt.listingType === listingType);
+  const listingTypeConfig = config?.listing?.listingTypes.find(
+    lt => lt.listingType === listingType
+  );
   const { process, alias, unitType, ...rest } = listingTypeConfig?.transactionType || {};
   // Note: we want to rely on unitType written in public data of the listing entity.
   //       The listingType configuration might have changed on the fly.
@@ -89,6 +91,7 @@ export const getFormattedTotalPrice = (transaction, intl) => {
  * @returns shippingDetails object containing name, phoneNumber and address
  */
 export const getShippingDetailsMaybe = formValues => {
+  console.log('inside shipping detials', formValues);
   const {
     saveAfterOnetimePayment: saveAfterOnetimePaymentRaw,
     recipientName,
@@ -101,7 +104,7 @@ export const getShippingDetailsMaybe = formValues => {
     recipientCountry,
   } = formValues;
 
-  return recipientName && recipientAddressLine1 && recipientPostal
+  return recipientName
     ? {
         shippingDetails: {
           name: recipientName,
@@ -118,7 +121,37 @@ export const getShippingDetailsMaybe = formValues => {
       }
     : {};
 };
+export const getShippingDetailsWithToken = formValues => {
+  console.log('inside shipping detials', formValues);
+  const {
+    // saveAfterOnetimePayment: saveAfterOnetimePaymentRaw,
+    recipientName,
+    phoneNumber,
+    addressLine1,
+    addressLine2,
+    postal,
+    city,
+    state,
+    country,
+  } = formValues;
 
+  return recipientName
+    ? {
+        shippingDetails: {
+          name: recipientName,
+          phoneNumber: phoneNumber,
+          address: {
+            city: city,
+            country: country,
+            line1: addressLine1,
+            line2: addressLine2,
+            postalCode: postal,
+            state: state,
+          },
+        },
+      }
+    : {};
+};
 /**
  * Check if the default payment method exists for the currentUser
  * @param {Boolean} stripeCustomerFetched
@@ -345,7 +378,108 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
   return handlePaymentIntentCreation(orderParams);
 };
 
+export const processCheckoutWithoutPayment = (orderParams, extraParams) => {
+  const {
+    message,
+    onInitiateOrder,
+    onSendMessage,
+    pageData,
+    process,
+    setPageData,
+    sessionStorageKey,
+    onConfirmPayment
+  } = extraParams;
+  console.log(pageData,"pagedata>>")
+  const storedTx = ensureTransaction(pageData.transaction);
 
+  const processAlias = pageData?.listing?.attributes?.publicData?.transactionProcessAlias;
+
+  ////////////////////////////////////////////////
+  // Step 1: initiate order                     //
+  // by requesting booking from Marketplace API //
+  ////////////////////////////////////////////////
+  const fnRequest = fnParams => {
+    // fnParams should be { listingId, deliveryMethod, quantity?, bookingDates?, protectedData }
+    console.log('setp1 ')
+    const requestTransition =
+      storedTx?.attributes?.lastTransition === process.transitions.INQUIRE
+        ? process.transitions.REQUEST_PAYMENT_AFTER_INQUIRY
+        : process.transitions.REQUEST_PAYMENT;
+    const isPrivileged = process.isPrivileged(requestTransition);
+
+    const orderPromise = onInitiateOrder(
+      fnParams,
+      processAlias,
+      storedTx.id,
+      requestTransition,
+      isPrivileged
+    );
+
+    orderPromise.then(order => {
+      // Store the returned transaction (order)
+      persistTransaction(order, pageData, storeData, setPageData, sessionStorageKey);
+    });
+
+    return orderPromise;
+  };
+
+  //////////////////////////////////
+  // Step 2: send initial message //
+  //////////////////////////////////
+  const fnSendMessage = fnParams => {
+    const orderId = fnParams?.id;
+    return onSendMessage({
+      id: orderId,
+      message,
+    });
+  };
+
+  /////////////////////////////////
+  // Call each step in sequence //
+  ////////////////////////////////
+
+  ///////////////////////////////////////////////////
+  // Step 3: complete order                        //
+  // by confirming payment against Marketplace API //
+  ///////////////////////////////////////////////////
+  const fnConfirmPayment = fnParams => {
+    // fnParams should contain { paymentIntent, transactionId } returned in step 2
+    // Remember the created PaymentIntent for step 5
+    createdPaymentIntent = fnParams.paymentIntent;
+    const transactionId = fnParams.transactionId;
+    console.log('transactionId in step2', transactionId)
+    const transitionName = process.transitions.CONFIRM_PAYMENT;
+    const isTransitionedAlready = storedTx?.attributes?.lastTransition === transitionName;
+    const orderPromise = isTransitionedAlready
+      ? Promise.resolve(storedTx)
+      : onConfirmPayment(transactionId, transitionName, {});
+
+    orderPromise.then(order => {
+      // Store the returned transaction (order)
+      persistTransaction(order, pageData, storeData, setPageData, sessionStorageKey);
+    });
+
+    return orderPromise;
+  };
+
+  return fnRequest(orderParams).then(res =>
+    // fnConfirmCardPayment({})
+    fnSendMessage({
+      ...res,
+    })
+
+  );
+  //  const applyAsync = (acc, val) => acc.then(val);
+  //  const composeAsync = (...funcs) => x => funcs.reduce(applyAsync, Promise.resolve(x));
+  //  const handlePaymentIntentCreation = composeAsync(
+  //    fnRequest,
+  //   //  fnConfirmPayment,
+  //    fnSendMessage,
+   
+  //  );
+
+  //  return handlePaymentIntentCreation(orderParams);
+};
 
 /**
  * Initialize OrderDetailsPage with given initialValues.
