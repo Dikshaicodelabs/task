@@ -36,12 +36,14 @@ import {
   confirmPayment,
   sendMessage,
   initiateInquiryWithoutPayment,
+  updateOrderData,
+  orderData,
 } from './CheckoutPage.duck';
 
 import CustomTopbar from './CustomTopbar';
 import CheckoutPageWithPayment, {
   loadInitialDataForStripePayments,
-  loadInitialData
+  loadInitialData,
 } from './CheckoutPageWithPayment';
 import CheckoutPageWithInquiryProcess from './CheckoutPageWithInquiryProcess';
 
@@ -68,7 +70,7 @@ const EnhancedCheckoutPage = props => {
   const routeConfiguration = useRouteConfiguration();
   const intl = useIntl();
   const history = useHistory();
-
+  console.log(pageData, ' pageData')
   useEffect(() => {
     const {
       currentUser,
@@ -79,7 +81,10 @@ const EnhancedCheckoutPage = props => {
       fetchStripeCustomer,
     } = props;
     const initialData = { orderData, listing, transaction };
+
     const data = handlePageData(initialData, STORAGE_KEY, history);
+    
+    
     setPageData(data || {});
     setIsDataLoaded(true);
 
@@ -96,7 +101,7 @@ const EnhancedCheckoutPage = props => {
         });
       }
     }
-  }, []);
+  }, [orderData]);
 
   const {
     currentUser,
@@ -105,6 +110,7 @@ const EnhancedCheckoutPage = props => {
     speculateTransactionInProgress,
     onInquiryWithoutPayment,
     initiateOrderError,
+    onUpdateOrderData,
   } = props;
   const processName = getProcessName(pageData);
   const isInquiryProcess = processName === INQUIRY_PROCESS_NAME;
@@ -185,6 +191,7 @@ const EnhancedCheckoutPage = props => {
       listingTitle={listingTitle}
       title={title}
       onSubmitCallback={onSubmitCallback}
+      onUpdateOrderData={onUpdateOrderData}
       {...props}
     />
   ) : (
@@ -246,15 +253,10 @@ const mapDispatchToProps = dispatch => ({
   onSendMessage: params => dispatch(sendMessage(params)),
   onSavePaymentMethod: (stripeCustomer, stripePaymentMethodId) =>
     dispatch(savePaymentMethod(stripeCustomer, stripePaymentMethodId)),
-  
+  onUpdateOrderData: orderDatas => dispatch(updateOrderData(orderDatas)),
 });
 
-const CheckoutPage = compose(
-  connect(
-    mapStateToProps,
-    mapDispatchToProps
-  )
-)(EnhancedCheckoutPage);
+const CheckoutPage = compose(connect(mapStateToProps, mapDispatchToProps))(EnhancedCheckoutPage);
 
 CheckoutPage.setInitialValues = (initialValues, saveToSessionStorage = false) => {
   if (saveToSessionStorage) {

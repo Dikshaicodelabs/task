@@ -47,7 +47,7 @@ const initialState = {
   initiateInquiryInProgress: false,
   initiateInquiryError: null,
   paymentWithTokenSuccess: false,
-  orderData:null
+  orderData: null,
 };
 
 export default function checkoutPageReducer(state = initialState, action = {}) {
@@ -118,8 +118,8 @@ export default function checkoutPageReducer(state = initialState, action = {}) {
       break;
 
     case UPADTE_ORDER_DATA:
-          return { ...state, orderData:payload };
-          break;
+      return { ...state, orderData: payload };
+      break;
     default:
       return state;
   }
@@ -191,7 +191,7 @@ export const initiateInquiryError = e => ({
   error: true,
   payload: e,
 });
-export const orderData =(orderData)=>({type:UPADTE_ORDER_DATA,payload:orderData})
+export const orderData = orderData => ({ type: UPADTE_ORDER_DATA, payload: orderData });
 /* ================ Thunks ================ */
 
 export const initiateOrder = (
@@ -316,8 +316,59 @@ export const confirmPayment = (transactionId, transitionName, transitionParams =
       throw e;
     });
 };
-const updateOrderData = () => (dispatch, getState, sdk) => {
-  dispatch(orderData())
+// export const updateOrderData = orderData => async (dispatch, getState, sdk) => {
+//   const updatedOrderData = { ...orderData, processName: 'default-token' };
+//   dispatch(orderData(updatedOrderData));
+
+//   return await initiatePrivileged({ isSpeculative: false, orderData: updatedOrderData })
+//     .then(response => {
+//       console.log('Order updated successfully:', response);
+//       return response;
+//     })
+//     .catch(error => {
+//       console.error('Error updating order:', error);
+//       throw error;
+//     });
+// };
+export const updateOrderData = (listing,orderData) => async (dispatch, getState, sdk) => {
+  const listingData = { ...listing };
+  const updatedListingData = {
+    ...listingData,
+    attributes: {
+      ...listingData.attributes,
+      publicData: {
+        ...listingData.attributes.publicData,
+        transactionProcessAlias: 'default-token/release-1', // Updated process
+      },
+    },
+  };
+ const processName='default-token/release-1';
+  dispatch(orderData(listingData));
+    const bodyParams = 
+       {
+          id: transactionId,
+          transition: transitionName,
+          params: transitionParams,
+        }
+       
+    const queryParams = {
+      include: ['booking', 'provider'],
+      expand: true,
+    };
+
+  try {
+    const response = await initiatePrivileged({
+      isSpeculative: false,
+      orderData,
+      bodyParams,
+      queryParams
+    });
+    console.log('Order updated successfully:', response);
+    return response;
+  } catch (error) {
+    console.error('Error updating order:', error);
+    throw error;
+  }
 };
 
 export const sendMessage = params => (dispatch, getState, sdk) => {
@@ -409,6 +460,7 @@ export const speculateTransaction = (
   isPrivilegedTransition
 ) => (dispatch, getState, sdk) => {
   dispatch(speculateTransactionRequest());
+  const state = getState();
 
   // If we already have a transaction ID, we should transition, not
   // initiate.

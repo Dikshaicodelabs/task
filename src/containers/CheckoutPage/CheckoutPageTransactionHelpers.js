@@ -91,7 +91,6 @@ export const getFormattedTotalPrice = (transaction, intl) => {
  * @returns shippingDetails object containing name, phoneNumber and address
  */
 export const getShippingDetailsMaybe = formValues => {
-  console.log('inside shipping detials', formValues);
   const {
     saveAfterOnetimePayment: saveAfterOnetimePaymentRaw,
     recipientName,
@@ -122,7 +121,7 @@ export const getShippingDetailsMaybe = formValues => {
     : {};
 };
 export const getShippingDetailsWithToken = formValues => {
-  console.log('inside shipping detials', formValues);
+  
   const {
     // saveAfterOnetimePayment: saveAfterOnetimePaymentRaw,
     recipientName,

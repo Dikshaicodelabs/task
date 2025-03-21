@@ -295,7 +295,6 @@ const initialState = {
  */
 class StripePaymentForm extends Component {
   constructor(props) {
-    console.log(props);
     super(props);
     // this.state = initialState;
     this.state = {
@@ -332,7 +331,6 @@ class StripePaymentForm extends Component {
       } = this.props;
       this.stripe = window.Stripe(publishableKey);
       const res =onStripeInitialized(this.stripe);
-      console.log(res, '----')
 
      
       // const shouldInitializeStripe =
@@ -438,7 +436,12 @@ class StripePaymentForm extends Component {
     });
   }
   handleOptionChange = event => {
-    this.setState({ selectedOption: event.target.value });
+    const value = event.target.value;
+    this.setState({ selectedOption: value });
+    console.log(value)
+    if(value === "token"){
+      this.props.onUpdateOrderData(this.props.listing,this.props.orderData);
+    }
   };
   // handleSubmit(values) {
   //   console.log(values);
@@ -494,12 +497,9 @@ class StripePaymentForm extends Component {
     const { selectedOption, paymentMethod } = this.state;
     const { initialMessage } = values;
 
-    console.log(defaultPaymentMethod, '-->>');
-    console.log('Selected Option:', selectedOption);
-
     // Prevent duplicate submission
     if (inProgress) {
-      console.warn('Form is already submitting.');
+      // console.warn('Form is already submitting.');
       return;
     }
 
@@ -512,7 +512,7 @@ class StripePaymentForm extends Component {
         paymentMethod: "token", // Use token directly when selected
       };
 
-      console.log('Submitting with Token:', params);
+      // console.log('Submitting with Token:', params);
       onSubmit(params);
       return;
     }
@@ -582,6 +582,10 @@ class StripePaymentForm extends Component {
       isFuzzyLocation,
       currentUser,
       values,
+      onUpdateOrderData,
+      listing,
+      orderData,
+      transaction,
     } = formRenderProps;
 
     this.finalFormAPI = formApi;
@@ -611,7 +615,6 @@ class StripePaymentForm extends Component {
     // Note: totalPrice might not be available initially
     // when speculateTransaction call is in progress.
     const totalPriceMaybe = totalPrice || '';
-    console.log(totalPriceMaybe, '----');
 
     // TODO: confirmCardPayment can create all kinds of errors.
     // Currently, we provide translation support for one:
@@ -669,7 +672,6 @@ class StripePaymentForm extends Component {
     };
     // const token = currentUser?.attributes?.profile?.publicData?.token;
     // const { userType, token } = currentUser?.attributes?.profile?.publicData;
-    console.log(userType);
     const ComponentWithToken = () => {
       return (
         <div>

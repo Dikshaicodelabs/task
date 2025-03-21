@@ -103,17 +103,22 @@ const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config
     ...protectedDataMaybe,
     ...optionalPaymentParams,
   };
+
+  
   return orderParams;
 };
 
 const fetchSpeculatedTransactionIfNeeded = (orderParams, pageData, fetchSpeculatedTransaction) => {
   const tx = pageData ? pageData.transaction : null;
   const pageDataListing = pageData.listing;
-  const processName =
-    tx?.attributes?.processName ||
-    pageDataListing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0];
+  const tokenProcess= 'default-token'
+  // const processName =
+  //   tx?.attributes?.processName  && tokenProcess||
+  //   pageDataListing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0];
+  const processName = tx?.attributes?.processName ?   pageDataListing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0] : tokenProcess;
   const process = processName ? getProcess(processName) : null;
-
+  console.log(processName)
+  
   // If transaction has passed payment-pending state, speculated tx is not needed.
   const shouldFetchSpeculatedTransaction =
     !!pageData?.listing?.id &&
@@ -175,6 +180,8 @@ export const loadInitialDataForStripePayments = ({
   const shippingDetails = {};
   const optionalPaymentParams = {};
   const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
+
+  
 
   fetchSpeculatedTransactionIfNeeded(orderParams, pageData, fetchSpeculatedTransaction);
 };
@@ -421,13 +428,12 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
       setPageData,
       onConfirmPayment,
     };
-  console.log(formValues , 'form values --->>')
+
+    console.log(process,'>>')
     const shippingDetails = getShippingDetailsWithToken(formValues);
-    console.log('Shipping details:', shippingDetails);
 
     // Generate order parameters
     const orderParams = getOrderParams(pageData, shippingDetails, config);
-    console.log('Order params:', orderParams);
 
     // Process checkout without Stripe
     processCheckoutWithoutPayment(orderParams, requestPaymentParams)
@@ -613,7 +619,12 @@ export const CheckoutPageWithPayment = props => {
     listingTitle,
     title,
     config,
+    onUpdateOrderData, 
+    
   } = props;
+
+  console.log(processName);
+  
 
   // Since the listing data is already given from the ListingPage
   // and stored to handle refreshes, it might not have the possible
@@ -676,7 +687,6 @@ export const CheckoutPageWithPayment = props => {
 
   const firstImage = listing?.images?.length > 0 ? listing.images[0] : null;
   const { userType, token } = currentUser?.attributes?.profile?.publicData;
-  console.log(userType, ' ', token);
   const listingLink = (
     <NamedLink
       name="ListingPage"
@@ -787,20 +797,20 @@ export const CheckoutPageWithPayment = props => {
                 showInitialMessageInput={showInitialMessageInput}
                 initialValues={initialValuesForStripePayment}
                 initiateOrderError={initiateOrderError}
-                confirmCardPaymentError={confirmCardPaymentError}//
-                confirmPaymentError={confirmPaymentError}//
+                confirmCardPaymentError={confirmCardPaymentError} //
+                confirmPaymentError={confirmPaymentError} //
                 hasHandledCardPayment={hasPaymentIntentUserActionsDone} //
-                loadingData={!stripeCustomerFetched}//
+                loadingData={!stripeCustomerFetched} //
                 defaultPaymentMethod={
                   hasDefaultPaymentMethod(stripeCustomerFetched, currentUser)
                     ? currentUser.stripeCustomer.defaultPaymentMethod
                     : null
-                }//
-                paymentIntent={paymentIntent}//
+                } //
+                paymentIntent={paymentIntent} //
                 onStripeInitialized={stripe => {
                   setStripe(stripe);
                   return onStripeInitialized(stripe, process, props);
-                }}//
+                }} //
                 askShippingDetails={askShippingDetails}
                 showPickUplocation={orderData?.deliveryMethod === 'pickup'}
                 listingLocation={listing?.attributes?.publicData?.location}
@@ -811,6 +821,10 @@ export const CheckoutPageWithPayment = props => {
                 isBooking={isBookingProcessAlias(transactionProcessAlias)}
                 isFuzzyLocation={config.maps.fuzzy.enabled}
                 currentUser={currentUser}
+                listing={listing}
+                orderData={orderData}
+                transaction={transaction}
+                onUpdateOrderData={onUpdateOrderData}
               />
             ) : null}
           </section>

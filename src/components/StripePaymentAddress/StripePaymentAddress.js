@@ -23,7 +23,6 @@ import css from './StripePaymentAddress.module.css';
  */
 const StripePaymentAddress = props => {
   const { className, intl, disabled, form, fieldId, card, locale, token } = props;
-   console.log(props , '--props address')
   const optionalText = intl.formatMessage({
     id: 'StripePaymentAddress.optionalText',
   });
