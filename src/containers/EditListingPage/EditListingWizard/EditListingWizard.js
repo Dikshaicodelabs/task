@@ -220,9 +220,10 @@ const tabCompleted = (tab, listing, config) => {
     privateData,
   } = listing.attributes;
   const images = listing.images;
-  const { listingType, transactionProcessAlias, unitType, shippingEnabled, pickupEnabled } =
+  const { listingType, unitType, shippingEnabled, pickupEnabled, transactionProcessAlias } =
     publicData || {};
   const deliveryOptionPicked = publicData && (shippingEnabled || pickupEnabled);
+  // const transactionProcessAlias = 'default-token/release-1';
 
   switch (tab) {
     case DETAILS:

@@ -4,10 +4,12 @@ import {
   INQUIRY_PROCESS_NAME,
   PURCHASE_PROCESS_NAME,
   resolveLatestProcessName,
+  TOKEN_PROCESS_NAME,
 } from '../../transactions/transaction';
 import { getStateDataForBookingProcess } from './TransactionPage.stateDataBooking.js';
 import { getStateDataForInquiryProcess } from './TransactionPage.stateDataInquiry.js';
 import { getStateDataForPurchaseProcess } from './TransactionPage.stateDataPurchase.js';
+import { getStateDataForTokenProcess } from './TransactionPage.stateToken.js';
 
 const errorShape = shape({
   type: oneOf(['error']).isRequired,
@@ -84,6 +86,8 @@ export const getStateData = (params, process) => {
     intl,
     transitionInProgress,
     transitionError,
+    handleAcccept,
+    handleDecline,
     onTransition,
     sendReviewInProgress,
     sendReviewError,
@@ -91,6 +95,8 @@ export const getStateData = (params, process) => {
   } = params;
   const isCustomer = transactionRole === 'customer';
   const processName = resolveLatestProcessName(transaction?.attributes?.processName);
+
+  console.log(processName, 'processName');
 
   const getActionButtonProps = (transitionName, forRole, extra = {}) =>
     getActionButtonPropsMaybe(
@@ -101,7 +107,21 @@ export const getStateData = (params, process) => {
         intl,
         inProgress: transitionInProgress === transitionName,
         transitionError,
-        onAction: () => onTransition(transaction?.id, transitionName, {}),
+        // onAction: () =>
+        //   transitionName === 'transition/accept'
+        //     ? handleAcccept()
+        //     : onTransition(transaction?.id, transitionName, {}),
+        onAction: () => {
+          if (transitionName === 'transition/accept') {
+            handleAcccept();
+            onTransition(transaction?.id, transitionName, {});
+          } else if (transitionName === 'transition/decline') {
+            handleDecline();
+            onTransition(transaction?.id, transitionName, {});
+          } else {
+            onTransition(transaction?.id, transitionName, {});
+          }
+        },
         ...extra,
       },
       forRole
@@ -139,6 +159,8 @@ export const getStateData = (params, process) => {
     return getStateDataForBookingProcess(params, processInfo());
   } else if (processName === INQUIRY_PROCESS_NAME) {
     return getStateDataForInquiryProcess(params, processInfo());
+  } else if (processName === TOKEN_PROCESS_NAME) {
+    return getStateDataForTokenProcess(params, processInfo());
   } else {
     return {};
   }

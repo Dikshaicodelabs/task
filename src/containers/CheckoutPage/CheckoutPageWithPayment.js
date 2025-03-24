@@ -25,7 +25,7 @@ import {
   processCheckoutWithoutPayment,
   processCheckoutWithPayment,
   setOrderPageInitialValues,
-  getShippingDetailsWithToken
+  getShippingDetailsWithToken,
 } from './CheckoutPageTransactionHelpers.js';
 import { getErrorMessages } from './ErrorMessages';
 
@@ -104,21 +104,21 @@ const getOrderParams = (pageData, shippingDetails, optionalPaymentParams, config
     ...optionalPaymentParams,
   };
 
-  
   return orderParams;
 };
 
 const fetchSpeculatedTransactionIfNeeded = (orderParams, pageData, fetchSpeculatedTransaction) => {
   const tx = pageData ? pageData.transaction : null;
   const pageDataListing = pageData.listing;
-  const tokenProcess= 'default-token'
+  const tokenProcess = 'default-token';
   // const processName =
   //   tx?.attributes?.processName  && tokenProcess||
   //   pageDataListing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0];
-  const processName = tx?.attributes?.processName ?   pageDataListing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0] : tokenProcess;
+  const processName = tx?.attributes?.processName
+    ? pageDataListing?.attributes?.publicData?.transactionProcessAlias?.split('/')[0]
+    : tokenProcess;
   const process = processName ? getProcess(processName) : null;
-  console.log(processName)
-  
+
   // If transaction has passed payment-pending state, speculated tx is not needed.
   const shouldFetchSpeculatedTransaction =
     !!pageData?.listing?.id &&
@@ -180,8 +180,6 @@ export const loadInitialDataForStripePayments = ({
   const shippingDetails = {};
   const optionalPaymentParams = {};
   const orderParams = getOrderParams(pageData, shippingDetails, optionalPaymentParams, config);
-
-  
 
   fetchSpeculatedTransactionIfNeeded(orderParams, pageData, fetchSpeculatedTransaction);
 };
@@ -414,8 +412,6 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
 
   // If user is paying with token, process the payment without Stripe
   if (selectedPaymentMethod === 'token') {
-    console.log('Processing payment using user token balance...');
-
     const requestPaymentParams = {
       pageData,
       speculatedTransaction,
@@ -429,18 +425,29 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
       onConfirmPayment,
     };
 
-    console.log(process,'>>')
     const shippingDetails = getShippingDetailsWithToken(formValues);
-
+    const updatedPageData = {
+      ...pageData,
+      listing: {
+        ...pageData.listing,
+        attributes: {
+          ...pageData.listing.attributes,
+          publicData: {
+            ...pageData.listing.attributes.publicData,
+            transactionProcessAlias: 'default-token/release-1', // Ensure this is correctly set
+          },
+        },
+      },
+    };
     // Generate order parameters
-    const orderParams = getOrderParams(pageData, shippingDetails, config);
+    const orderParams = getOrderParams(updatedPageData, shippingDetails, config);
 
+    const processName = 'default-token/release-1';
     // Process checkout without Stripe
-    processCheckoutWithoutPayment(orderParams, requestPaymentParams)
+    processCheckoutWithoutPayment(orderParams, requestPaymentParams, processName)
       .then(response => {
         const { orderId, messageSuccess } = response;
         setSubmitting(false);
-        console.log('Order submitted successfully.');
 
         const initialMessageFailedToTransaction = messageSuccess ? null : orderId;
         const orderDetailsPath = pathByRouteName('OrderDetailsPage', routeConfiguration, {
@@ -454,6 +461,7 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
         setOrderPageInitialValues(initialValues, routeConfiguration, dispatch);
         onSubmitCallback();
         history.push(orderDetailsPath);
+        
       })
       .catch(err => {
         console.error('Error processing token payment:', err);
@@ -535,10 +543,10 @@ const handleSubmit = (values, process, props, stripe, submitting, setSubmitting)
 const onStripeInitialized = (stripe, process, props) => {
   const { paymentIntent, onRetrievePaymentIntent, pageData } = props;
   const tx = pageData?.transaction || null;
-    // const tx =
-    //   existingTransaction?.attributes?.lineItems?.length > 0
-    //     ? existingTransaction
-    //     : speculatedTransaction;
+  // const tx =
+  //   existingTransaction?.attributes?.lineItems?.length > 0
+  //     ? existingTransaction
+  //     : speculatedTransaction;
   // We need to get up to date PI, if payment is pending but it's not expired.
   const shouldFetchPaymentIntent =
     stripe &&
@@ -619,12 +627,10 @@ export const CheckoutPageWithPayment = props => {
     listingTitle,
     title,
     config,
-    onUpdateOrderData, 
-    
+    onUpdateOrderData,
+    onUpdateProfile,
+    makePaymentUsingToken,
   } = props;
-
-  console.log(processName);
-  
 
   // Since the listing data is already given from the ListingPage
   // and stored to handle refreshes, it might not have the possible
@@ -717,7 +723,7 @@ export const CheckoutPageWithPayment = props => {
   // If paymentIntent status is not waiting user action,
   // confirmCardPayment has been called previously.
   const hasPaymentIntentUserActionsDone =
-    paymentIntent && STRIPE_PI_USER_ACTIONS_DONE_STATUSES.includes(paymentIntent.status);// /// ////
+    paymentIntent && STRIPE_PI_USER_ACTIONS_DONE_STATUSES.includes(paymentIntent.status); // /// ////
 
   // If your marketplace works mostly in one country you can use initial values to select country automatically
   // e.g. {country: 'FI'}
@@ -726,7 +732,7 @@ export const CheckoutPageWithPayment = props => {
   const askShippingDetails =
     orderData?.deliveryMethod === 'shipping' &&
     !hasTransactionPassedPendingPayment(existingTransaction, process);
-  //  const askShippingDetails = orderData?.deliveryMethod === 'shipping'; 
+  //  const askShippingDetails = orderData?.deliveryMethod === 'shipping';
 
   // Check if the listing currency is compatible with Stripe for the specified transaction process.
   // This function validates the currency against the transaction process requirements and
@@ -825,6 +831,8 @@ export const CheckoutPageWithPayment = props => {
                 orderData={orderData}
                 transaction={transaction}
                 onUpdateOrderData={onUpdateOrderData}
+                onUpdateProfile={onUpdateProfile}
+                makePaymentUsingToken={makePaymentUsingToken}
               />
             ) : null}
           </section>

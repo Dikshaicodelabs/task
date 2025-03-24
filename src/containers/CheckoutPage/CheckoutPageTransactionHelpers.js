@@ -121,7 +121,6 @@ export const getShippingDetailsMaybe = formValues => {
     : {};
 };
 export const getShippingDetailsWithToken = formValues => {
-  
   const {
     // saveAfterOnetimePayment: saveAfterOnetimePaymentRaw,
     recipientName,
@@ -377,7 +376,7 @@ export const processCheckoutWithPayment = (orderParams, extraPaymentParams) => {
   return handlePaymentIntentCreation(orderParams);
 };
 
-export const processCheckoutWithoutPayment = (orderParams, extraParams) => {
+export const processCheckoutWithoutPayment = (orderParams, extraParams, processName) => {
   const {
     message,
     onInitiateOrder,
@@ -386,12 +385,13 @@ export const processCheckoutWithoutPayment = (orderParams, extraParams) => {
     process,
     setPageData,
     sessionStorageKey,
-    onConfirmPayment
+    onConfirmPayment,
   } = extraParams;
-  console.log(pageData,"pagedata>>")
+
   const storedTx = ensureTransaction(pageData.transaction);
 
-  const processAlias = pageData?.listing?.attributes?.publicData?.transactionProcessAlias;
+  // const processAlias = pageData?.listing?.attributes?.publicData?.transactionProcessAlias;
+  const processAlias = processName;
 
   ////////////////////////////////////////////////
   // Step 1: initiate order                     //
@@ -399,7 +399,6 @@ export const processCheckoutWithoutPayment = (orderParams, extraParams) => {
   ////////////////////////////////////////////////
   const fnRequest = fnParams => {
     // fnParams should be { listingId, deliveryMethod, quantity?, bookingDates?, protectedData }
-    console.log('setp1 ')
     const requestTransition =
       storedTx?.attributes?.lastTransition === process.transitions.INQUIRE
         ? process.transitions.REQUEST_PAYMENT_AFTER_INQUIRY
@@ -437,47 +436,13 @@ export const processCheckoutWithoutPayment = (orderParams, extraParams) => {
   // Call each step in sequence //
   ////////////////////////////////
 
-  ///////////////////////////////////////////////////
-  // Step 3: complete order                        //
-  // by confirming payment against Marketplace API //
-  ///////////////////////////////////////////////////
-  const fnConfirmPayment = fnParams => {
-    // fnParams should contain { paymentIntent, transactionId } returned in step 2
-    // Remember the created PaymentIntent for step 5
-    createdPaymentIntent = fnParams.paymentIntent;
-    const transactionId = fnParams.transactionId;
-    console.log('transactionId in step2', transactionId)
-    const transitionName = process.transitions.CONFIRM_PAYMENT;
-    const isTransitionedAlready = storedTx?.attributes?.lastTransition === transitionName;
-    const orderPromise = isTransitionedAlready
-      ? Promise.resolve(storedTx)
-      : onConfirmPayment(transactionId, transitionName, {});
-
-    orderPromise.then(order => {
-      // Store the returned transaction (order)
-      persistTransaction(order, pageData, storeData, setPageData, sessionStorageKey);
-    });
-
-    return orderPromise;
-  };
-
   return fnRequest(orderParams).then(res =>
     // fnConfirmCardPayment({})
     fnSendMessage({
       ...res,
     })
-
   );
-  //  const applyAsync = (acc, val) => acc.then(val);
-  //  const composeAsync = (...funcs) => x => funcs.reduce(applyAsync, Promise.resolve(x));
-  //  const handlePaymentIntentCreation = composeAsync(
-  //    fnRequest,
-  //   //  fnConfirmPayment,
-  //    fnSendMessage,
-   
-  //  );
 
-  //  return handlePaymentIntentCreation(orderParams);
 };
 
 /**

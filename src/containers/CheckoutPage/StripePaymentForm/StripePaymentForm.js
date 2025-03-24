@@ -296,6 +296,8 @@ const initialState = {
 class StripePaymentForm extends Component {
   constructor(props) {
     super(props);
+    console.log(props, 'props')
+
     // this.state = initialState;
     this.state = {
       ...initialState,
@@ -330,27 +332,26 @@ class StripePaymentForm extends Component {
         loadingData,
       } = this.props;
       this.stripe = window.Stripe(publishableKey);
-      const res =onStripeInitialized(this.stripe);
+      const res = onStripeInitialized(this.stripe);
 
-     
       // const shouldInitializeStripe =
       //   !(hasHandledCardPayment || defaultPaymentMethod || loadingData ) &&
       //   (userType === 'customer' && this.state.selectedOption === 'card');
 
       // if (shouldInitializeStripe) {
       //   this.initializeStripeElement();
-      // }  
-    //   if (
-    //     !(
-    //       hasHandledCardPayment ||
-    //       defaultPaymentMethod ||
-    //       loadingData 
-    //     )
-    //   ) {
-    //     this.initializeStripeElement();
-    //   }
-    //    console.log(hasHandledCardPayment);
-    //    console.log(defaultPaymentMethod)
+      // }
+      //   if (
+      //     !(
+      //       hasHandledCardPayment ||
+      //       defaultPaymentMethod ||
+      //       loadingData
+      //     )
+      //   ) {
+      //     this.initializeStripeElement();
+      //   }
+      //    console.log(hasHandledCardPayment);
+      //    console.log(defaultPaymentMethod)
     }
   }
 
@@ -438,10 +439,6 @@ class StripePaymentForm extends Component {
   handleOptionChange = event => {
     const value = event.target.value;
     this.setState({ selectedOption: value });
-    console.log(value)
-    if(value === "token"){
-      this.props.onUpdateOrderData(this.props.listing,this.props.orderData);
-    }
   };
   // handleSubmit(values) {
   //   console.log(values);
@@ -505,15 +502,33 @@ class StripePaymentForm extends Component {
 
     // If token is selected, use token value directly
     if (selectedOption === 'token') {
+      const totalPriceNotMaybe = this.props.totalPrice?.split('$')[1];
+      const token = this.props?.currentUser?.attributes?.profile?.publicData.token;
+
+      if (token < totalPriceNotMaybe) {
+        alert('Please pay using card , not enough balance');
+        return;
+      }
+
       const params = {
         message: initialMessage ? initialMessage.trim() : null,
         formId,
         formValues: values,
-        paymentMethod: "token", // Use token directly when selected
+        paymentMethod: 'token', // Use token directly when selected
       };
 
-      // console.log('Submitting with Token:', params);
+      const body = {
+        price: totalPriceNotMaybe,
+        token: token,
+        remainingToken: token-totalPriceNotMaybe,
+        status: 'requested',
+      };
+
       onSubmit(params);
+      this.props.makePaymentUsingToken(body);
+      const updatedToken = { publicData: { token: token - totalPriceNotMaybe } };
+
+      this.props.onUpdateProfile(updatedToken);
       return;
     }
 
@@ -534,7 +549,6 @@ class StripePaymentForm extends Component {
     );
 
     if (onetimePaymentNeedsAttention) {
-
       console.log('Card details need attention. Cannot proceed.');
       return;
     }
@@ -544,9 +558,10 @@ class StripePaymentForm extends Component {
       card: this.card,
       formId,
       formValues: values,
-     paymentMethod: getPaymentMethod(
+      paymentMethod: getPaymentMethod(
         paymentMethod,
-        ensurePaymentMethodCard(defaultPaymentMethod).id)
+        ensurePaymentMethodCard(defaultPaymentMethod).id
+      ),
     };
 
     console.log('Submitting with Card:', params);
@@ -586,6 +601,7 @@ class StripePaymentForm extends Component {
       listing,
       orderData,
       transaction,
+      makePaymentUsingToken
     } = formRenderProps;
 
     this.finalFormAPI = formApi;
@@ -780,8 +796,6 @@ class StripePaymentForm extends Component {
               </React.Fragment>
             )}
 
-      
-
             {showOnetimePaymentFields ? (
               <div className={css.billingDetails}>
                 <Heading as="h3" rootClassName={css.heading}>
@@ -880,7 +894,7 @@ class StripePaymentForm extends Component {
   }
 
   render() {
-    const { onSubmit, ...rest } = this.props;
+    const { onSubmit, totalPriceMaybe, ...rest } = this.props;
 
     return <FinalForm onSubmit={this.handleSubmit} {...rest} render={this.paymentForm} />;
   }

@@ -29,9 +29,9 @@ export const NO_ACCESS_PAGE_VIEW_LISTINGS = 'viewing-rights';
 // From Gist thread: https://gist.github.com/mathewbyrne/1280286
 export const createSlug = str => {
   let text = str
-    .toString()
-    .toLowerCase()
-    .trim();
+    ?.toString()
+    ?.toLowerCase()
+    ?.trim();
 
   const sets = [
     { to: 'a', from: 'ÀÁÂÃÄÅÆĀĂĄẠẢẤẦẨẪẬẮẰẲẴẶ' },
@@ -62,16 +62,16 @@ export const createSlug = str => {
   ];
 
   sets.forEach(set => {
-    text = text.replace(new RegExp(`[${set.from}]`, 'gi'), set.to);
+    text = text?.replace(new RegExp(`[${set.from}]`, 'gi'), set.to);
   });
 
   const slug = encodeURIComponent(
     text
-      .replace(/\s+/g, '-') // Replace spaces with -
-      .replace(/[^\w-]+/g, '') // Remove all non-word chars
-      .replace(/--+/g, '-') // Replace multiple - with single -
-      .replace(/^-+/, '') // Trim - from start of text
-      .replace(/-+$/, '') // Trim - from end of text
+      ?.replace(/\s+/g, '-') // Replace spaces with -
+      ?.replace(/[^\w-]+/g, '') // Remove all non-word chars
+      ?.replace(/--+/g, '-') // Replace multiple - with single -
+      ?.replace(/^-+/, '') // Trim - from start of text
+      ?.replace(/-+$/, '') // Trim - from end of text
   );
 
   return slug.length > 0 ? slug : 'no-slug';

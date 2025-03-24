@@ -59,6 +59,7 @@ import {
   fetchMoreMessages,
   fetchTimeSlots,
   fetchTransactionLineItems,
+  handleBooking,
 } from './TransactionPage.duck';
 import css from './TransactionPage.module.css';
 import { hasPermissionToViewData } from '../../util/userHelpers.js';
@@ -173,7 +174,11 @@ export const TransactionPageComponent = props => {
     fetchLineItemsError,
   } = props;
 
-  const { listing, provider, customer, booking } = transaction || {};
+  const { listing, provider, customer, booking, attributes } = transaction || {};
+
+  const { payinTotal } = attributes || {};
+
+  console.log(transaction, 'customer');
   const txTransitions = transaction?.attributes?.transitions || [];
   const isProviderRole = transactionRole === PROVIDER;
   const isCustomerRole = transactionRole === CUSTOMER;
@@ -391,6 +396,16 @@ export const TransactionPageComponent = props => {
     initialMessageFailedToTransaction.uuid === transaction?.id?.uuid
   );
 
+  const handleAcccept = () => {
+    console.log('Accepted');
+  };
+  const handleDecline = () => {
+    const body = {
+      id: customer?.id?.uuid,
+      refundAMount: payinTotal?.amount / 100,
+    };
+  };
+
   const otherUserDisplayName = isOwnOrder ? (
     <UserDisplayName user={provider} intl={intl} />
   ) : (
@@ -407,6 +422,8 @@ export const TransactionPageComponent = props => {
           transitionError,
           sendReviewInProgress,
           sendReviewError,
+          handleAcccept,
+          handleDecline,
           onTransition,
           onOpenReviewModal,
           intl,
@@ -658,15 +675,13 @@ const mapDispatchToProps = dispatch => {
       dispatch(fetchTransactionLineItems(orderData, listingId, isOwnListing)),
     onFetchTimeSlots: (listingId, start, end, timeZone) =>
       dispatch(fetchTimeSlots(listingId, start, end, timeZone)),
+    onHandleBooking: data => dispatch(handleBooking(data)),
   };
 };
 
 const TransactionPage = compose(
   withRouter,
-  connect(
-    mapStateToProps,
-    mapDispatchToProps
-  )
+  connect(mapStateToProps, mapDispatchToProps)
 )(TransactionPageComponent);
 
 export default TransactionPage;

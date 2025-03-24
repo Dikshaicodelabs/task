@@ -1,5 +1,5 @@
 import pick from 'lodash/pick';
-import { initiatePrivileged, transitionPrivileged } from '../../util/api';
+import { initiatePrivileged, makePayment, transitionPrivileged } from '../../util/api';
 import { denormalisedResponseEntities } from '../../util/data';
 import { storableError } from '../../util/errors';
 import * as log from '../../util/log';
@@ -31,6 +31,10 @@ export const INITIATE_INQUIRY_ERROR = 'app/CheckoutPage/INITIATE_INQUIRY_ERROR';
 
 export const PAYMENT_WITH_TOKEN_SUCCESS = 'app/CheckoutPage/PAYMENT_WITH_TOKEN_SUCCESS';
 export const UPADTE_ORDER_DATA = 'app/CheckoutPage/UPADTE_ORDER_DATA';
+
+export const MAKE_PAYMENT_PENDING = 'app/CheckoutPage/MAKE_PAYMENT_PENDING';
+export const MAKE_PAYMENT_SUCCESS = 'app/CheckoutPage/MAKE_PAYMENT_SUCCESS';
+export const MAKE_PAYMENT_ERROR = 'app/CheckoutPage/MAKE_PAYMENT_ERROR';
 // ================ Reducer ================ //
 
 const initialState = {
@@ -48,6 +52,10 @@ const initialState = {
   initiateInquiryError: null,
   paymentWithTokenSuccess: false,
   orderData: null,
+
+  paymentDataPending: false,
+  paymentData: [],
+  paymentDataError: null,
 };
 
 export default function checkoutPageReducer(state = initialState, action = {}) {
@@ -120,6 +128,24 @@ export default function checkoutPageReducer(state = initialState, action = {}) {
     case UPADTE_ORDER_DATA:
       return { ...state, orderData: payload };
       break;
+
+    case MAKE_PAYMENT_PENDING:
+      return {
+        ...state,
+        paymentDataPending: true,
+      };
+
+    case MAKE_PAYMENT_SUCCESS:
+      return {
+        ...state,
+        paymentData: payload,
+      };
+
+    case MAKE_PAYMENT_ERROR:
+      return {
+        ...state,
+        paymentDataError: payload,
+      };
     default:
       return state;
   }
@@ -192,7 +218,30 @@ export const initiateInquiryError = e => ({
   payload: e,
 });
 export const orderData = orderData => ({ type: UPADTE_ORDER_DATA, payload: orderData });
+
+export const onMakePaymentRequest = () => ({
+  type: MAKE_PAYMENT_PENDING,
+});
+export const onMakePaymentSuccess = payload => ({
+  type: MAKE_PAYMENT_SUCCESS,
+  payload,
+});
+export const onMakePaymentError = error => ({
+  type: MAKE_PAYMENT_ERROR,
+  payload: error,
+});
+
 /* ================ Thunks ================ */
+
+export const onMakePaymentUsingToken = body => async (dispatch, getState, sdk) => {
+  dispatch(onMakePaymentRequest());
+  try {
+    const resp = await makePayment(body);
+    dispatch(onMakePaymentSuccess(resp));
+  } catch (error) {
+    dispatch(onMakePaymentError(error));
+  }
+};
 
 export const initiateOrder = (
   orderParams,
@@ -330,7 +379,9 @@ export const confirmPayment = (transactionId, transitionName, transitionParams =
 //       throw error;
 //     });
 // };
-export const updateOrderData = (listing,orderData) => async (dispatch, getState, sdk) => {
+export const updateOrderData = (listing, orderData) => async (dispatch, getState, sdk) => {
+  console.log(listing);
+
   const listingData = { ...listing };
   const updatedListingData = {
     ...listingData,
@@ -342,26 +393,25 @@ export const updateOrderData = (listing,orderData) => async (dispatch, getState,
       },
     },
   };
- const processName='default-token/release-1';
-  dispatch(orderData(listingData));
-    const bodyParams = 
-       {
-          id: transactionId,
-          transition: transitionName,
-          params: transitionParams,
-        }
-       
-    const queryParams = {
-      include: ['booking', 'provider'],
-      expand: true,
-    };
+  const processName = 'default-token/release-1';
+  // dispatch(orderData(listingData));
+  const bodyParams = {
+    id: transactionId,
+    transition: transitionName,
+    params: transitionParams,
+  };
+
+  const queryParams = {
+    include: ['booking', 'provider'],
+    expand: true,
+  };
 
   try {
     const response = await initiatePrivileged({
       isSpeculative: false,
       orderData,
       bodyParams,
-      queryParams
+      queryParams,
     });
     console.log('Order updated successfully:', response);
     return response;

@@ -207,3 +207,9 @@ exports.fetchAccessControlAsset = sdk => {
       return response;
     });
 };
+exports.getISdk = () => {
+  return sharetribeIntegrationSdk.createInstance({
+    clientId: process.env.INTEGRATION_CLIENT_ID,
+    clientSecret: process.env.INTEGRATION_CLIENT_SECRET,
+  });
+};

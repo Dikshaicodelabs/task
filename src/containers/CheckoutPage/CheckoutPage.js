@@ -38,6 +38,7 @@ import {
   initiateInquiryWithoutPayment,
   updateOrderData,
   orderData,
+  onMakePaymentUsingToken,
 } from './CheckoutPage.duck';
 
 import CustomTopbar from './CustomTopbar';
@@ -47,6 +48,7 @@ import CheckoutPageWithPayment, {
 } from './CheckoutPageWithPayment';
 import CheckoutPageWithInquiryProcess from './CheckoutPageWithInquiryProcess';
 
+import { updateProfile } from '../ProfileSettingsPage/ProfileSettingsPage.duck';
 const STORAGE_KEY = 'CheckoutPage';
 
 const onSubmitCallback = () => {
@@ -70,7 +72,6 @@ const EnhancedCheckoutPage = props => {
   const routeConfiguration = useRouteConfiguration();
   const intl = useIntl();
   const history = useHistory();
-  console.log(pageData, ' pageData')
   useEffect(() => {
     const {
       currentUser,
@@ -111,10 +112,14 @@ const EnhancedCheckoutPage = props => {
     onInquiryWithoutPayment,
     initiateOrderError,
     onUpdateOrderData,
+    onUpdateProfile,
+    makePaymentUsingToken,
   } = props;
-  const processName = getProcessName(pageData);
-  const isInquiryProcess = processName === INQUIRY_PROCESS_NAME;
 
+    const processName = getProcessName(pageData);
+    // console.log( onUpdateOrderData);
+  // const processName = 'default-token';
+  const isInquiryProcess = processName === INQUIRY_PROCESS_NAME;
   // Handle redirection to ListingPage, if this is own listing or if required data is not available
   const listing = pageData?.listing;
   const isOwnListing = currentUser?.id && listing?.author?.id?.uuid === currentUser?.id?.uuid;
@@ -192,6 +197,8 @@ const EnhancedCheckoutPage = props => {
       title={title}
       onSubmitCallback={onSubmitCallback}
       onUpdateOrderData={onUpdateOrderData}
+      onUpdateProfile={onUpdateProfile}
+      makePaymentUsingToken={makePaymentUsingToken}
       {...props}
     />
   ) : (
@@ -254,6 +261,8 @@ const mapDispatchToProps = dispatch => ({
   onSavePaymentMethod: (stripeCustomer, stripePaymentMethodId) =>
     dispatch(savePaymentMethod(stripeCustomer, stripePaymentMethodId)),
   onUpdateOrderData: orderDatas => dispatch(updateOrderData(orderDatas)),
+  onUpdateProfile: data => dispatch(updateProfile(data)),
+  makePaymentUsingToken: data => dispatch(onMakePaymentUsingToken(data)),
 });
 
 const CheckoutPage = compose(connect(mapStateToProps, mapDispatchToProps))(EnhancedCheckoutPage);

@@ -144,3 +144,11 @@ export const transitionPrivileged = body => {
 export const createUserWithIdp = body => {
   return post('/api/auth/create-user-with-idp', body);
 };
+
+export const makePayment = body => {
+  return post('/api/pay', body);
+};
+
+export const onUpdatePay = body => {
+  return post('/api/update-pay', body);
+};
