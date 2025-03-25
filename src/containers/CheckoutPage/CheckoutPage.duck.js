@@ -275,11 +275,11 @@ export const onUpdateTransactionError = (error) => ({
 export const onUpdateTransactionFlow = (body) => async (dispatch, getState, sdk) => {
   const state = getState()
   const paymentData = state?.CheckoutPage?.paymentData;
-  console.log(paymentData);
+  
   
   dispatch(onUpdateTransactionRequest());
   try {
-    console.log(body)
+  
     //  const resp = await onUpdateTransaction({id,body});
     dispatch(onUpdateTransactionSuccess(resp));
   } catch (error) {
@@ -433,7 +433,7 @@ export const confirmPayment = (transactionId, transitionName, transitionParams =
 //     });
 // };
 export const updateOrderData = (listing, orderData) => async (dispatch, getState, sdk) => {
-  console.log(listing);
+  
 
   const listingData = { ...listing };
   const updatedListingData = {
@@ -466,7 +466,7 @@ export const updateOrderData = (listing, orderData) => async (dispatch, getState
       bodyParams,
       queryParams,
     });
-    console.log('Order updated successfully:', response);
+    // console.log('Order updated successfully:', response);
     return response;
   } catch (error) {
     console.error('Error updating order:', error);

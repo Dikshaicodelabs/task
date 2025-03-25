@@ -64,6 +64,7 @@ import {
 } from './TransactionPage.duck';
 import css from './TransactionPage.module.css';
 import { hasPermissionToViewData } from '../../util/userHelpers.js';
+import { onMakePaymentUsingToken } from '../CheckoutPage/CheckoutPage.duck.js';
 
 // Submit dispute and close the review modal
 const onDisputeOrder = (
@@ -174,6 +175,7 @@ export const TransactionPageComponent = props => {
     fetchLineItemsInProgress,
     fetchLineItemsError,
     onUpdateTokenAfterDecline,
+    onMakePaymentUsingToken
   } = props;
 
   const { listing, provider, customer, booking, attributes } = transaction || {};
@@ -396,15 +398,38 @@ export const TransactionPageComponent = props => {
     initialMessageFailedToTransaction &&
     initialMessageFailedToTransaction.uuid === transaction?.id?.uuid
   );
+  
 
+  const  token  = customer?.attributes?.profile?.publicData?.token;
+  const mongoUserId = customer?.attributes?.profile?.publicData?.mongoUserId;
   const handleAcccept = () => {
     console.log('Accepted');
+     const data = {
+       user: mongoUserId,
+        transactionId: transaction?.id?.uuid,
+       token: token,
+       status: 'accepted',
+       price: payinTotal?.amount / 100,
+       remainingToken: token,
+     };
+     onMakePaymentUsingToken(data);
   };
   const handleDecline = () => {
     const body = {
       id: customer?.id?.uuid,
       refundAmount: payinTotal?.amount / 100,
     };
+
+    const data = {
+      user: mongoUserId,
+      transactionId: transaction?.id?.uuid,
+      token: token + payinTotal?.amount / 100,
+      status: 'declined',
+      price: payinTotal?.amount / 100,
+      remainingToken: token + payinTotal?.amount / 100,
+    };
+    onMakePaymentUsingToken(data)
+
     onUpdateTokenAfterDecline(body);
   };
 
@@ -679,6 +704,8 @@ const mapDispatchToProps = dispatch => {
       dispatch(fetchTimeSlots(listingId, start, end, timeZone)),
     onHandleBooking: data => dispatch(handleBooking(data)),
     onUpdateTokenAfterDecline: data => dispatch(updateTokenAfterDecline(data)),
+    onMakePaymentUsingToken :data =>dispatch(onMakePaymentUsingToken(data))
+    
   };
 };
 

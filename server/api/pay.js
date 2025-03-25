@@ -4,7 +4,7 @@ const pay = async (req, res) => {
   try {
     const { user, price, token, remainingToken, status, transactionId } = req.body;
 
-    if (!user || !price || !token || !remainingToken || !status || !transactionId) {
+    if (!user || !price || !token || !remainingToken || !status ) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 

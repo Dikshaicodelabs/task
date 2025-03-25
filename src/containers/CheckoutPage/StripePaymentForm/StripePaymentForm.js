@@ -297,7 +297,7 @@ const initialState = {
 class StripePaymentForm extends Component {
   constructor(props) {
     super(props);
-    console.log(props, 'props')
+   
 
     // this.state = initialState;
     this.state = {
@@ -441,48 +441,7 @@ class StripePaymentForm extends Component {
     const value = event.target.value;
     this.setState({ selectedOption: value });
   };
-  // handleSubmit(values) {
-  //   console.log(values);
-
-  //   console.log('Button clicked');
-
-  //   const {
-  //     onSubmit,
-  //     inProgress,
-  //     formId,
-  //     hasHandledCardPayment,
-  //     defaultPaymentMethod,
-  //   } = this.props;
-  //   const { initialMessage } = values;
-  //   const { cardValueValid, paymentMethod } = this.state;
-  //   const hasDefaultPaymentMethod = defaultPaymentMethod?.id;
-  //   const selectedPaymentMethod = getPaymentMethod(paymentMethod, hasDefaultPaymentMethod);
-  //   const { onetimePaymentNeedsAttention } = checkOnetimePaymentFields(
-  //     cardValueValid,
-  //     selectedPaymentMethod,
-  //     hasDefaultPaymentMethod,
-  //     hasHandledCardPayment
-  //   );
-
-  //   if (inProgress || onetimePaymentNeedsAttention) {
-  //     console.log('Inside if');
-
-  //     // Already submitting or card value incomplete/invalid
-  //     return;
-  //   }
-
-  //   const params = {
-  //     message: initialMessage ? initialMessage.trim() : null,
-  //     card: this.card,
-  //     formId,
-  //     formValues: values,
-  //     paymentMethod: getPaymentMethod(
-  //       paymentMethod,
-  //       ensurePaymentMethodCard(defaultPaymentMethod).id
-  //     ),
-  //   };
-  //   onSubmit(params);
-  // }
+  
   handleSubmit(values) {
     const {
       onSubmit,
@@ -505,7 +464,7 @@ class StripePaymentForm extends Component {
     if (selectedOption === 'token') {
       const totalPriceNotMaybe = this.props.totalPrice?.split('$')[1];
       const { token, mongoUserId } = this.props?.currentUser?.attributes?.profile?.publicData;
-       console.log(token , mongoUserId)
+       
       if (token < totalPriceNotMaybe) {
         alert('Please pay using card , not enough balance');
         return;
@@ -517,7 +476,7 @@ class StripePaymentForm extends Component {
         formValues: values,
         paymentMethod: 'token', // Use token directly when selected
       };
-      console.log(values, 'values');
+     
       const body = {
         user:mongoUserId,
         price: totalPriceNotMaybe,
