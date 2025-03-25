@@ -59,7 +59,7 @@ const PanelHeading = props => {
       <H1 className={titleClasses}>
         <span className={css.mainTitle}>
           <FormattedMessage
-            id={`TransactionPage.${processName}.${transactionRole}.${processState}.title`}
+            id="TransactionPage.default-booking.customer.preauthorized.title"
             values={{ customerName, providerName, breakline }}
           />
         </span>

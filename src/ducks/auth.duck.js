@@ -1,7 +1,8 @@
 import * as log from '../util/log';
 import { storableError } from '../util/errors';
 import { clearCurrentUser, fetchCurrentUser } from './user.duck';
-import { createUserWithIdp } from '../util/api';
+import { createUserWithIdp, onCreateUser } from '../util/api';
+import { updateProfile } from '../containers/ProfileSettingsPage/ProfileSettingsPage.duck';
 
 const authenticated = authInfo => authInfo?.isAnonymous === false;
 const loggedInAs = authInfo => authInfo?.isLoggedInAs === true;
@@ -26,6 +27,10 @@ export const SIGNUP_ERROR = 'app/auth/SIGNUP_ERROR';
 export const CONFIRM_REQUEST = 'app/auth/CONFIRM_REQUEST';
 export const CONFIRM_SUCCESS = 'app/auth/CONFIRM_SUCCESS';
 export const CONFIRM_ERROR = 'app/auth/CONFIRM_ERROR';
+
+export const CREATE_USER_REQUEST = 'app/auth/CREATE_USER_REQUEST';
+export const CREATE_USER_SUCCESS = 'app/auth/CREATE_USER_SUCCESS';
+export const CREATE_USER_ERROR = 'app/auth/CREATE_USER_ERROR';
 
 // Generic user_logout action that can be handled elsewhere
 // E.g. src/reducers.js clears store as a consequence
@@ -60,6 +65,10 @@ const initialState = {
   // confirm (create use with idp)
   confirmError: null,
   confirmInProgress: false,
+
+  createUserPending: true,
+  createdUserId: '',
+  craeteUserError: null,
 };
 
 export default function reducer(state = initialState, action = {}) {
@@ -116,6 +125,26 @@ export default function reducer(state = initialState, action = {}) {
     case CONFIRM_ERROR:
       return { ...state, confirmInProgress: false, confirmError: payload };
 
+    case CREATE_USER_REQUEST:
+      return {
+        ...state,
+        createUserPending: true,
+      };
+
+    case CREATE_USER_SUCCESS:
+      console.log('Reducer received CREATE_USER_SUCCESS with payload:', payload);
+      return {
+        ...state,
+        createUserPending: false,
+        createdUserId: payload,
+      };
+
+    case CREATE_USER_ERROR:
+      return {
+        ...state,
+        craeteUserError: payload,
+      };
+
     default:
       return state;
   }
@@ -149,9 +178,38 @@ export const confirmRequest = () => ({ type: CONFIRM_REQUEST });
 export const confirmSuccess = () => ({ type: CONFIRM_SUCCESS });
 export const confirmError = error => ({ type: CONFIRM_ERROR, payload: error, error: true });
 
+export const createUserRequest = () => ({
+  type: CREATE_USER_REQUEST,
+});
+
+export const createUserSuccess = id => {
+  console.log('id', id);
+  return {
+    type: CREATE_USER_SUCCESS,
+    payload: id,
+  };
+};
+
+export const craeteUserError = err => ({
+  type: CREATE_USER_ERROR,
+  payload: err,
+});
+
 export const userLogout = () => ({ type: USER_LOGOUT });
 
 // ================ Thunks ================ //
+
+export const onCraeteUserinDB = data => async (dispatch, getState, sdk) => {
+  dispatch(createUserRequest());
+  try {
+    const resp = await onCreateUser(data);
+    console.log('resp?.user?._id', resp?.user?._id);
+    dispatch(createUserSuccess(resp?.user?._id));
+    console.log('after dispatch');
+  } catch (error) {
+    dispatch(craeteUserError(error));
+  }
+};
 
 export const authInfo = () => (dispatch, getState, sdk) => {
   dispatch(authInfoRequest());
@@ -170,6 +228,8 @@ export const authInfo = () => (dispatch, getState, sdk) => {
 };
 
 export const login = (username, password) => (dispatch, getState, sdk) => {
+  const state = getState();
+  console.log(state.auth.createdUserId);
   if (authenticationInProgress(getState())) {
     return Promise.reject(new Error('Login or logout already in progress'));
   }
@@ -180,7 +240,15 @@ export const login = (username, password) => (dispatch, getState, sdk) => {
   return sdk
     .login({ username, password })
     .then(() => dispatch(fetchCurrentUser({ afterLogin: true })))
-    .then(() => dispatch(loginSuccess()))
+    .then(() => {
+      const profile = {
+        publicData: {
+          mongoUserId: state.auth.createdUserId,
+        },
+      };
+      dispatch(loginSuccess());
+      dispatch(updateProfile(profile));
+    })
     .catch(e => dispatch(loginError(storableError(e))));
 };
 
@@ -205,10 +273,21 @@ export const logout = () => (dispatch, getState, sdk) => {
 };
 
 export const signup = params => (dispatch, getState, sdk) => {
+  // const state = getState();
+  // console.log(state.auth.createdUserId);
+
+  const body = {
+    name: params?.displayName,
+    email: params?.email,
+    token: params?.publicData?.token,
+  };
   if (authenticationInProgress(getState())) {
     return Promise.reject(new Error('Login or logout already in progress'));
   }
+
+  dispatch(onCraeteUserinDB(body));
   dispatch(signupRequest());
+
   // Note: params are already structured on AuthenticationPage (handleSubmitSignup)
 
   // We must login the user if signup succeeds since the API doesn't

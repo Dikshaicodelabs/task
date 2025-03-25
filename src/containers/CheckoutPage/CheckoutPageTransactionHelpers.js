@@ -4,6 +4,7 @@ import { ensureStripeCustomer, ensureTransaction } from '../../util/data';
 import { minutesBetween } from '../../util/dates';
 import { formatMoney } from '../../util/currency';
 import { storeData } from './CheckoutPageSessionHelpers';
+import { onUpdateTransactionFlow } from './CheckoutPage.duck';
 
 /**
  * Extract relevant transaction type data from listing type
@@ -415,6 +416,9 @@ export const processCheckoutWithoutPayment = (orderParams, extraParams, processN
 
     orderPromise.then(order => {
       // Store the returned transaction (order)
+      console.log(order, 'order');
+      console.log(pageData, 'pageData');
+      console.log(storeData, 'storeData');
       persistTransaction(order, pageData, storeData, setPageData, sessionStorageKey);
     });
 
@@ -442,7 +446,6 @@ export const processCheckoutWithoutPayment = (orderParams, extraParams, processN
       ...res,
     })
   );
-
 };
 
 /**

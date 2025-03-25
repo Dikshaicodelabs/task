@@ -152,3 +152,16 @@ export const makePayment = body => {
 export const onUpdatePay = body => {
   return post('/api/update-pay', body);
 };
+
+export const onUpdateToken = body => {
+  return post(`/api/update-token`, body);
+};
+
+export const onCreateUser = body => {
+  return post('/api/create-user', body);
+};
+
+
+export const onUpdateTransaction = body =>{
+  return post('/api/update-transaction', body)
+}

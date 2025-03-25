@@ -22,6 +22,9 @@ const { authenticateFacebook, authenticateFacebookCallback } = require('./api/au
 const { authenticateGoogle, authenticateGoogleCallback } = require('./api/auth/google');
 const pay = require('./api/pay');
 const updatePay = require('./api/updatePay');
+const updateToken = require('./api/updateToken');
+const createUser = require('./api/create-user');
+const updateTransaction = require('./api/update-transaction');
 
 const router = express.Router();
 
@@ -83,5 +86,8 @@ router.get('/auth/google', authenticateGoogle);
 router.get('/auth/google/callback', authenticateGoogleCallback);
 router.post('/pay', pay);
 router.post('update-pay', updatePay);
+router.post('/update-token', updateToken);
+router.post('/create-user', createUser);
+router.post('/update-transaction', updateTransaction);
 
 module.exports = router;

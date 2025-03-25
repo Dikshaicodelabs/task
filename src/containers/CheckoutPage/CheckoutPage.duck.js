@@ -1,9 +1,10 @@
 import pick from 'lodash/pick';
-import { initiatePrivileged, makePayment, transitionPrivileged } from '../../util/api';
+import { initiatePrivileged, makePayment, onUpdateTransaction, transitionPrivileged } from '../../util/api';
 import { denormalisedResponseEntities } from '../../util/data';
 import { storableError } from '../../util/errors';
 import * as log from '../../util/log';
 import { fetchCurrentUserHasOrdersSuccess, fetchCurrentUser } from '../../ducks/user.duck';
+
 
 // ================ Action types ================ //
 
@@ -35,6 +36,11 @@ export const UPADTE_ORDER_DATA = 'app/CheckoutPage/UPADTE_ORDER_DATA';
 export const MAKE_PAYMENT_PENDING = 'app/CheckoutPage/MAKE_PAYMENT_PENDING';
 export const MAKE_PAYMENT_SUCCESS = 'app/CheckoutPage/MAKE_PAYMENT_SUCCESS';
 export const MAKE_PAYMENT_ERROR = 'app/CheckoutPage/MAKE_PAYMENT_ERROR';
+
+export const UPDATE_TRANSACTION_REQUEST = 'app/CheckoutPage/UPDATE_TRANSACTION_REQUEST';
+export const UPDATE_TRANSACTION_SUCCESS = 'app/CheckoutPage/UPDATE_TRANSACTION_SUCCESS';
+export const UPDATE_TRANSACTION_ERROR = 'app/CheckoutPage/UPDATE_TRANSACTION_ERROR';
+
 // ================ Reducer ================ //
 
 const initialState = {
@@ -56,6 +62,10 @@ const initialState = {
   paymentDataPending: false,
   paymentData: [],
   paymentDataError: null,
+
+  updateTransactionRequest:false,
+  updateTransactionError:null,
+  updateTransactionData:[]
 };
 
 export default function checkoutPageReducer(state = initialState, action = {}) {
@@ -146,6 +156,23 @@ export default function checkoutPageReducer(state = initialState, action = {}) {
         ...state,
         paymentDataError: payload,
       };
+
+    case UPDATE_TRANSACTION_REQUEST:
+      return {
+        ...state,
+        updateTransactionRequest: true,
+      };
+
+    case UPDATE_TRANSACTION_SUCCESS:
+      return {
+        ...state,
+        updateTransactionData: payload,
+      };
+    case UPDATE_TRANSACTION_ERROR:
+      return {
+        ...state,
+        updateTransactionError: payload,
+      };
     default:
       return state;
   }
@@ -231,8 +258,34 @@ export const onMakePaymentError = error => ({
   payload: error,
 });
 
-/* ================ Thunks ================ */
+export const onUpdateTransactionRequest =()=>({
+  type:UPDATE_TRANSACTION_REQUEST
+})
+export const onUpdateTransactionSuccess = (payload) => ({
+  type: UPDATE_TRANSACTION_SUCCESS,
+ payload
+});
 
+export const onUpdateTransactionError = (error) => ({
+  type: UPDATE_TRANSACTION_ERROR,
+  payload:error
+})
+
+/* ================ Thunks ================ */
+export const onUpdateTransactionFlow = (body) => async (dispatch, getState, sdk) => {
+  const state = getState()
+  const paymentData = state?.CheckoutPage?.paymentData;
+  console.log(paymentData);
+  
+  dispatch(onUpdateTransactionRequest());
+  try {
+    console.log(body)
+    //  const resp = await onUpdateTransaction({id,body});
+    dispatch(onUpdateTransactionSuccess(resp));
+  } catch (error) {
+    dispatch(onUpdateTransactionError(error));
+  }
+};
 export const onMakePaymentUsingToken = body => async (dispatch, getState, sdk) => {
   dispatch(onMakePaymentRequest());
   try {

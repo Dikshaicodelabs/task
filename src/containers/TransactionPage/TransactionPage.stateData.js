@@ -96,8 +96,6 @@ export const getStateData = (params, process) => {
   const isCustomer = transactionRole === 'customer';
   const processName = resolveLatestProcessName(transaction?.attributes?.processName);
 
-  console.log(processName, 'processName');
-
   const getActionButtonProps = (transitionName, forRole, extra = {}) =>
     getActionButtonPropsMaybe(
       {
@@ -107,10 +105,7 @@ export const getStateData = (params, process) => {
         intl,
         inProgress: transitionInProgress === transitionName,
         transitionError,
-        // onAction: () =>
-        //   transitionName === 'transition/accept'
-        //     ? handleAcccept()
-        //     : onTransition(transaction?.id, transitionName, {}),
+
         onAction: () => {
           if (transitionName === 'transition/accept') {
             handleAcccept();

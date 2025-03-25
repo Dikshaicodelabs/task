@@ -5,7 +5,7 @@ import isEmpty from 'lodash/isEmpty';
 import { types as sdkTypes, createImageVariantConfig } from '../../util/sdkLoader';
 import { findNextBoundary, getStartOf, monthIdString } from '../../util/dates';
 import { isTransactionsTransitionInvalidTransition, storableError } from '../../util/errors';
-import { onUpdatePay, transactionLineItems } from '../../util/api';
+import { onUpdatePay, onUpdateToken, transactionLineItems } from '../../util/api';
 import * as log from '../../util/log';
 import {
   updatedEntities,
@@ -62,10 +62,13 @@ export const FETCH_LINE_ITEMS_REQUEST = 'app/TransactionPage/FETCH_LINE_ITEMS_RE
 export const FETCH_LINE_ITEMS_SUCCESS = 'app/TransactionPage/FETCH_LINE_ITEMS_SUCCESS';
 export const FETCH_LINE_ITEMS_ERROR = 'app/TransactionPage/FETCH_LINE_ITEMS_ERROR';
 
-export const BOOKING_REQUESTED = 'app/TransactionPage/ BOOKING_REQUESTED';
+export const BOOKING_REQUESTED = 'app/TransactionPage/BOOKING_REQUESTED';
 export const BOOKING_SUCCESS = 'app/TransactionPage/BOOKING_SUCCESSS';
 export const BOOKING_ERROR = 'app/TransactionPage/BOOKING_ERROR';
-export const BOOKING_DECLINED = 'app/TransactionPage/BOOKING_DECLINED';
+
+export const UPDATE_TOKEN_REQUEST = 'app/TransactionPage/UPDATE_TOKEN_REQUEST';
+export const UPDATE_TOKEN_SUCCESS = 'app/TransactionPage/UPDATE_TOKEN_SUCCESS';
+export const UPDATE_TOKEN_ERROR = 'app/TransactionPage/UPDATE_TOKEN_ERROR';
 
 // ================ Reducer ================ //
 
@@ -102,7 +105,11 @@ const initialState = {
   fetchLineItemsError: null,
   bookingError: null,
   bookingData: [],
-  bookingRequested: true,
+  bookingRequested: false,
+
+  updateTokenPending: false,
+  updatedToken: {},
+  updateTokenError: null,
 };
 
 // Merge entity arrays using ids, so that conflicting items in newer array (b) overwrite old values (a).
@@ -235,15 +242,30 @@ export default function transactionPageReducer(state = initialState, action = {}
       return { ...state, fetchLineItemsInProgress: false, fetchLineItemsError: payload };
     case BOOKING_REQUESTED:
       return { ...state, bookingRequested: false };
-    case BOOKING_ERROR: {
+    case BOOKING_ERROR:
       return { ...state, bookingError: payload };
-    }
-    case BOOKING_SUCCESS: {
+
+    case BOOKING_SUCCESS:
       return { ...state, bookingData: payload };
-    }
-    case BOOKING_DECLINED: {
-      return { ...state, bookingData: payload };
-    }
+
+    case UPDATE_TOKEN_REQUEST:
+      return {
+        ...state,
+        updateTokenPending: true,
+      };
+
+    case UPDATE_TOKEN_SUCCESS:
+      return {
+        ...state,
+        updatedToken: payload,
+      };
+
+    case UPDATE_TOKEN_ERROR:
+      return {
+        ...state,
+        updateTokenError: payload,
+      };
+
     default:
       return state;
   }
@@ -323,12 +345,36 @@ export const fetchLineItemsError = error => ({
   payload: error,
 });
 
+export const onUpdateTokenPending = () => ({
+  type: UPDATE_TOKEN_REQUEST,
+});
+
+export const onUpdateTokenSuccess = payload => ({
+  type: UPDATE_TOKEN_SUCCESS,
+  payload,
+});
+
+export const onUpdateTokenError = payload => ({
+  type: UPDATE_TOKEN_ERROR,
+  payload,
+});
+
 // ================ Thunks ================ //
 
 const timeSlotsRequest = params => (dispatch, getState, sdk) => {
   return sdk.timeslots.query(params).then(response => {
     return denormalisedResponseEntities(response);
   });
+};
+
+export const updateTokenAfterDecline = body => async (dispatch, getState, sdk) => {
+  dispatch(onUpdateTokenPending());
+  try {
+    const resp = await onUpdateToken(body);
+    dispatch(onUpdateTokenSuccess(resp));
+  } catch (error) {
+    dispatch(onUpdateTokenError(error));
+  }
 };
 
 export const handleBooking = body => async (dispatch, getState, sdk) => {

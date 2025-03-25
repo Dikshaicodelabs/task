@@ -60,6 +60,7 @@ import {
   fetchTimeSlots,
   fetchTransactionLineItems,
   handleBooking,
+  updateTokenAfterDecline,
 } from './TransactionPage.duck';
 import css from './TransactionPage.module.css';
 import { hasPermissionToViewData } from '../../util/userHelpers.js';
@@ -172,13 +173,13 @@ export const TransactionPageComponent = props => {
     lineItems,
     fetchLineItemsInProgress,
     fetchLineItemsError,
+    onUpdateTokenAfterDecline,
   } = props;
 
   const { listing, provider, customer, booking, attributes } = transaction || {};
 
   const { payinTotal } = attributes || {};
 
-  console.log(transaction, 'customer');
   const txTransitions = transaction?.attributes?.transitions || [];
   const isProviderRole = transactionRole === PROVIDER;
   const isCustomerRole = transactionRole === CUSTOMER;
@@ -402,8 +403,9 @@ export const TransactionPageComponent = props => {
   const handleDecline = () => {
     const body = {
       id: customer?.id?.uuid,
-      refundAMount: payinTotal?.amount / 100,
+      refundAmount: payinTotal?.amount / 100,
     };
+    onUpdateTokenAfterDecline(body);
   };
 
   const otherUserDisplayName = isOwnOrder ? (
@@ -676,6 +678,7 @@ const mapDispatchToProps = dispatch => {
     onFetchTimeSlots: (listingId, start, end, timeZone) =>
       dispatch(fetchTimeSlots(listingId, start, end, timeZone)),
     onHandleBooking: data => dispatch(handleBooking(data)),
+    onUpdateTokenAfterDecline: data => dispatch(updateTokenAfterDecline(data)),
   };
 };
 

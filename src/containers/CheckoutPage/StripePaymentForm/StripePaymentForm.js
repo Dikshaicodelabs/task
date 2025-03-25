@@ -25,6 +25,7 @@ import {
 import ShippingDetails from '../ShippingDetails/ShippingDetails';
 
 import css from './StripePaymentForm.module.css';
+import { useParams } from 'react-router-dom/cjs/react-router-dom.min';
 
 /**
  * Translate a Stripe API error object.
@@ -503,8 +504,8 @@ class StripePaymentForm extends Component {
     // If token is selected, use token value directly
     if (selectedOption === 'token') {
       const totalPriceNotMaybe = this.props.totalPrice?.split('$')[1];
-      const token = this.props?.currentUser?.attributes?.profile?.publicData.token;
-
+      const { token, mongoUserId } = this.props?.currentUser?.attributes?.profile?.publicData;
+       console.log(token , mongoUserId)
       if (token < totalPriceNotMaybe) {
         alert('Please pay using card , not enough balance');
         return;
@@ -516,8 +517,9 @@ class StripePaymentForm extends Component {
         formValues: values,
         paymentMethod: 'token', // Use token directly when selected
       };
-
+      console.log(values, 'values');
       const body = {
+        user:mongoUserId,
         price: totalPriceNotMaybe,
         token: token,
         remainingToken: token-totalPriceNotMaybe,
@@ -600,9 +602,10 @@ class StripePaymentForm extends Component {
       onUpdateOrderData,
       listing,
       orderData,
-      transaction,
       makePaymentUsingToken
     } = formRenderProps;
+   
+   
 
     this.finalFormAPI = formApi;
     const { userType, token } = currentUser?.attributes?.profile?.publicData;
